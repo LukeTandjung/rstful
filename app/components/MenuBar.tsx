@@ -21,7 +21,7 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/">
                 <NavigationMenu.Trigger 
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-active:text-border-focus data-active:bg-surface-select"
                 >
                   Feeds
                 </NavigationMenu.Trigger>
@@ -31,7 +31,7 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/starred">
                 <NavigationMenu.Trigger 
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-active:text-border-focus data-active:bg-surface-select"
                 >
                   Starred
                 </NavigationMenu.Trigger>
@@ -41,7 +41,7 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/chat">
                 <NavigationMenu.Trigger 
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-active:text-border-focus data-active:bg-surface-select"
                 >
                   Chat
                 </NavigationMenu.Trigger>
