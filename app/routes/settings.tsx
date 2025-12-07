@@ -1,10 +1,9 @@
 import type { Route } from "./+types/settings";
 import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
-import { Switch } from "@base-ui-components/react/switch";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
-import { SectionCard, MenuBar, TokenProgress } from "components";
+import { SectionCard, MenuBar, TokenProgress, CustomSwitch } from "components";
 import { useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
@@ -75,7 +74,8 @@ export default function Settings() {
                           Buy More Tokens
                         </Button>
                         <p className="font-normal text-sm leading-6 text-text-alt">
-                          Need more? Purchase additional tokens for extended AI chat usage.
+                          Need more? Purchase additional tokens for extended AI
+                          chat usage.
                         </p>
                       </div>
                     </div>
@@ -102,9 +102,7 @@ export default function Settings() {
                             Automatically check for new articles
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
-                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
-                        </Switch.Root>
+                        <CustomSwitch />
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -113,12 +111,11 @@ export default function Settings() {
                             Mark as read on scroll
                           </div>
                           <div className="font-normal text-sm leading-5 text-text-alt">
-                            Automatically mark articles as read when scrolled past
+                            Automatically mark articles as read when scrolled
+                            past
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
-                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
-                        </Switch.Root>
+                        <CustomSwitch />
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -130,9 +127,7 @@ export default function Settings() {
                             Display unread article counts in feed list
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
-                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
-                        </Switch.Root>
+                        <CustomSwitch />
                       </div>
                     </div>
                   </div>
@@ -158,9 +153,7 @@ export default function Settings() {
                             Open article links in a new browser tab
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
-                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
-                        </Switch.Root>
+                        <CustomSwitch />
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -172,9 +165,7 @@ export default function Settings() {
                             Display full content instead of summaries
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
-                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
-                        </Switch.Root>
+                        <CustomSwitch />
                       </div>
                     </div>
                   </div>
@@ -200,9 +191,9 @@ export default function Settings() {
                             Remove all read articles older than 30 days
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
+                        <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Clear
-                        </button>
+                        </Button>
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -214,9 +205,9 @@ export default function Settings() {
                             Export your feed subscriptions as OPML file
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
+                        <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Export
-                        </button>
+                        </Button>
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -228,9 +219,9 @@ export default function Settings() {
                             Import feed subscriptions from OPML file
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
+                        <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Import
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

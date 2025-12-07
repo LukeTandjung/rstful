@@ -9,3 +9,4 @@ export { MenuBar } from "./MenuBar";
 export { RemoveFeedDialog } from "./RemoveFeedDialog";
 export { SectionCard } from "./SectionCard";
 export { TokenProgress } from "./TokenProgress";
+export { CustomSwitch } from "./CustomSwitch";
