@@ -136,13 +136,13 @@ export default function Home() {
 
         <Separator className="w-full bg-border-unfocus h-0.5" />
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:grow lg:min-h-0 w-full">
+        <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
           {/* RSS Feeds Section */}
           <SectionCard
             icon={<RectangleStackIcon className="size-7" />}
             title="RSS Feeds"
             description={`${feeds.length} feeds • ${totalUnread} unread articles`}
-            className="lg:w-1/3 lg:min-h-0"
+            className="md:w-1/3 md:min-h-0"
           >
             {isLoadingFeeds ? (
               <div className="flex items-center justify-center py-8">
@@ -177,7 +177,7 @@ export default function Home() {
             icon={<NewspaperIcon className="size-7" />}
             title="Articles"
             description={`${articles.filter((a) => !a.isRead).length} unread`}
-            className="lg:w-1/3 lg:min-h-0"
+            className="md:w-1/3 md:min-h-0"
           >
             {isLoadingArticles ? (
               <div className="flex items-center justify-center py-8">
@@ -217,7 +217,7 @@ export default function Home() {
             description={
               selectedArticle ? selectedArticle.title : "No article selected"
             }
-            className="lg:w-1/3 lg:min-h-0"
+            className="md:w-1/3 md:min-h-0"
           >
             <ScrollArea.Root className="flex grow min-h-0 w-full">
               <ScrollArea.Viewport className="flex grow min-h-0 p-4">
