@@ -5,7 +5,7 @@ import { Switch } from "@base-ui-components/react/switch";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, MenuBar, TokenProgress } from "components";
-import { useNavigate } from "react-router";
+import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -18,12 +18,15 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Settings() {
-  const navigate = useNavigate();
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [markAsReadOnScroll, setMarkAsReadOnScroll] = useState(false);
+  const [showUnreadCount, setShowUnreadCount] = useState(true);
+  const [openLinksInNewTab, setOpenLinksInNewTab] = useState(true);
+  const [showFullContent, setShowFullContent] = useState(true);
 
   const handleLogout = () => {
     // Add logout logic here
     console.log("Logging out...");
-    navigate("/login");
   };
 
   return (
@@ -103,10 +106,11 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
+                          checked={autoRefresh}
+                          onCheckedChange={setAutoRefresh}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
-                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -120,10 +124,11 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked={false}
-                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
+                          checked={markAsReadOnScroll}
+                          onCheckedChange={setMarkAsReadOnScroll}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
-                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -137,10 +142,11 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
+                          checked={showUnreadCount}
+                          onCheckedChange={setShowUnreadCount}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
-                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
                     </div>
@@ -168,10 +174,11 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
+                          checked={openLinksInNewTab}
+                          onCheckedChange={setOpenLinksInNewTab}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
-                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -185,10 +192,11 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
+                          checked={showFullContent}
+                          onCheckedChange={setShowFullContent}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
-                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
                     </div>

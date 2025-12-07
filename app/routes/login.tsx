@@ -49,14 +49,12 @@ export default function Login() {
             <FormField
               name="email"
               label="Email"
-              type="email"
               placeholder="you@example.com"
             />
 
             <FormField
               name="password"
               label="Password"
-              type="password"
               placeholder="Enter your password"
             />
 
