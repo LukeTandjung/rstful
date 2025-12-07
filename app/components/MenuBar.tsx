@@ -4,11 +4,6 @@ import { Separator } from "@base-ui-components/react/separator";
 import { Link, useLocation } from "react-router";
 
 export function MenuBar() {
-  const location = useLocation();
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
 
   return (
     <div className="flex items-center justify-between w-full">
@@ -26,7 +21,6 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/">
                 <NavigationMenu.Trigger 
-                  data-active={isActive("/")}
                   className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Feeds
@@ -37,7 +31,6 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/starred">
                 <NavigationMenu.Trigger 
-                  data-active={isActive("/starred")}
                   className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Starred
@@ -48,7 +41,6 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/chat">
                 <NavigationMenu.Trigger 
-                  data-active={isActive("/chat")}
                   className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Chat
@@ -64,8 +56,7 @@ export function MenuBar() {
             <NavigationMenu.Item className="flex items-center">
               <Link to="/settings">
                 <NavigationMenu.Trigger 
-                  data-active={isActive("/settings")}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-active:text-border-focus data-active:bg-surface-select"
                 >
                   Settings
                 </NavigationMenu.Trigger>
