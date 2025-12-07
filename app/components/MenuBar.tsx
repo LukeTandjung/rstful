@@ -1,9 +1,15 @@
 import { Avatar } from "@base-ui-components/react/avatar";
 import { NavigationMenu } from "@base-ui-components/react/navigation-menu";
 import { Separator } from "@base-ui-components/react/separator";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 export function MenuBar() {
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
     <div className="flex items-center justify-between w-full">
       <Avatar.Root className="size-14">
@@ -19,7 +25,10 @@ export function MenuBar() {
           <NavigationMenu.List className="flex h-full items-center justify-end gap-6">
             <NavigationMenu.Item className="flex items-center">
               <Link to="/">
-                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
+                <NavigationMenu.Trigger 
+                  data-active={isActive("/")}
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                >
                   Feeds
                 </NavigationMenu.Trigger>
               </Link>
@@ -27,8 +36,22 @@ export function MenuBar() {
 
             <NavigationMenu.Item className="flex items-center">
               <Link to="/starred">
-                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
+                <NavigationMenu.Trigger 
+                  data-active={isActive("/starred")}
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                >
                   Starred
+                </NavigationMenu.Trigger>
+              </Link>
+            </NavigationMenu.Item>
+
+            <NavigationMenu.Item className="flex items-center">
+              <Link to="/chat">
+                <NavigationMenu.Trigger 
+                  data-active={isActive("/chat")}
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                >
+                  Chat
                 </NavigationMenu.Trigger>
               </Link>
             </NavigationMenu.Item>
@@ -40,7 +63,10 @@ export function MenuBar() {
 
             <NavigationMenu.Item className="flex items-center">
               <Link to="/settings">
-                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
+                <NavigationMenu.Trigger 
+                  data-active={isActive("/settings")}
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                >
                   Settings
                 </NavigationMenu.Trigger>
               </Link>

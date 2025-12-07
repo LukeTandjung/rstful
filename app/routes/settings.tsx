@@ -2,7 +2,8 @@ import type { Route } from "./+types/settings";
 import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
-import { SectionCard, MenuBar } from "components";
+import { Button } from "@base-ui-components/react/button";
+import { SectionCard, MenuBar, TokenProgress } from "components";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -40,6 +41,36 @@ export default function Settings() {
             <ScrollArea.Root className="flex grow min-h-0 w-full">
               <ScrollArea.Viewport className="flex grow min-h-0">
                 <div className="flex flex-col gap-8 p-4">
+                  {/* Token Usage Section */}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-semibold text-lg leading-7 text-text">
+                        Token Usage
+                      </h3>
+                      <p className="font-normal text-sm leading-6 text-text-alt">
+                        Track your AI chat token usage
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-6 pl-4">
+                      <TokenProgress
+                        label="Chat Tokens"
+                        current={2500}
+                        max={10000}
+                        period="this month"
+                      />
+
+                      <div className="flex items-center gap-4">
+                        <Button className="bg-border-focus hover:bg-border-focus/80 px-4 py-2 rounded-lg font-medium text-base leading-7 text-text transition-colors">
+                          Buy More Tokens
+                        </Button>
+                        <p className="font-normal text-sm leading-6 text-text-alt">
+                          Need more? Purchase additional tokens for extended AI chat usage.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* General Settings */}
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
@@ -67,7 +98,7 @@ export default function Settings() {
                             className="sr-only peer"
                             defaultChecked
                           />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
                         </label>
                       </div>
 
@@ -82,7 +113,7 @@ export default function Settings() {
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
                         </label>
                       </div>
 
@@ -101,7 +132,7 @@ export default function Settings() {
                             className="sr-only peer"
                             defaultChecked
                           />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
                         </label>
                       </div>
                     </div>
@@ -134,7 +165,7 @@ export default function Settings() {
                             className="sr-only peer"
                             defaultChecked
                           />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
                         </label>
                       </div>
 
@@ -153,7 +184,7 @@ export default function Settings() {
                             className="sr-only peer"
                             defaultChecked
                           />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
                         </label>
                       </div>
                     </div>
@@ -180,7 +211,7 @@ export default function Settings() {
                             Remove all read articles older than 30 days
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-surface-alt hover:bg-accent/10 text-text font-medium text-sm transition-colors">
+                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Clear
                         </button>
                       </div>
@@ -194,7 +225,7 @@ export default function Settings() {
                             Export your feed subscriptions as OPML file
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-surface-alt hover:bg-accent/10 text-text font-medium text-sm transition-colors">
+                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Export
                         </button>
                       </div>
@@ -208,7 +239,7 @@ export default function Settings() {
                             Import feed subscriptions from OPML file
                           </div>
                         </div>
-                        <button className="px-4 py-2 rounded-lg bg-surface-alt hover:bg-accent/10 text-text font-medium text-sm transition-colors">
+                        <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Import
                         </button>
                       </div>
