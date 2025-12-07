@@ -1,5 +1,4 @@
 import { Field } from "@base-ui-components/react/field";
-import type { ReactNode } from "react";
 
 interface FormFieldProps {
   label: string;
@@ -8,6 +7,7 @@ interface FormFieldProps {
   multiline?: boolean;
   name: string;
   defaultValue?: string;
+  type?: string;
 }
 
 export function FormField({
@@ -17,6 +17,7 @@ export function FormField({
   multiline = false,
   name,
   defaultValue,
+  type = "text",
 }: FormFieldProps) {
   return (
     <Field.Root
@@ -37,12 +38,31 @@ export function FormField({
         </Field.Description>
       )}
 
-      <Field.Control
-        render={multiline ? <textarea rows={3} /> : <input />}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-        className={`bg-background-select px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt w-full ${multiline ? "resize-none" : ""}`}
-      />
+      {multiline ? (
+        <Field.Control
+          render={(props) => (
+            <textarea
+              {...props}
+              rows={3}
+              placeholder={placeholder}
+              defaultValue={defaultValue}
+              className="bg-background-select px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt w-full resize-none"
+            />
+          )}
+        />
+      ) : (
+        <Field.Control
+          render={(props) => (
+            <input
+              {...props}
+              type={type}
+              placeholder={placeholder}
+              defaultValue={defaultValue}
+              className="bg-background-select px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt w-full"
+            />
+          )}
+        />
+      )}
     </Field.Root>
   );
 }

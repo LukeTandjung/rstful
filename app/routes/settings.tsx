@@ -104,9 +104,9 @@ export default function Settings() {
                         </div>
                         <Switch.Root
                           defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 bg-border-unfocus data-[checked]:bg-border-focus"
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
                         >
-                          <Switch.Thumb className="block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 data-[checked]:translate-x-5 translate-x-0.5" />
+                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -121,9 +121,9 @@ export default function Settings() {
                         </div>
                         <Switch.Root
                           defaultChecked={false}
-                          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 bg-border-unfocus data-[checked]:bg-border-focus"
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
                         >
-                          <Switch.Thumb className="block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 data-[checked]:translate-x-5 translate-x-0.5" />
+                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -138,9 +138,9 @@ export default function Settings() {
                         </div>
                         <Switch.Root
                           defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 bg-border-unfocus data-[checked]:bg-border-focus"
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
                         >
-                          <Switch.Thumb className="block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 data-[checked]:translate-x-5 translate-x-0.5" />
+                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
                         </Switch.Root>
                       </div>
                     </div>
@@ -169,9 +169,9 @@ export default function Settings() {
                         </div>
                         <Switch.Root
                           defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 bg-border-unfocus data-[checked]:bg-border-focus"
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
                         >
-                          <Switch.Thumb className="block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 data-[checked]:translate-x-5 translate-x-0.5" />
+                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
                         </Switch.Root>
                       </div>
 
@@ -186,9 +186,9 @@ export default function Settings() {
                         </div>
                         <Switch.Root
                           defaultChecked={true}
-                          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 bg-border-unfocus data-[checked]:bg-border-focus"
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-border-unfocus transition-colors data-[checked]:bg-border-focus"
                         >
-                          <Switch.Thumb className="block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 data-[checked]:translate-x-5 translate-x-0.5" />
+                          <Switch.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-lg transition-transform data-[checked]:translate-x-5 data-[unchecked]:translate-x-0.5" />
                         </Switch.Root>
                       </div>
                     </div>
