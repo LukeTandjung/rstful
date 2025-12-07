@@ -45,7 +45,7 @@ export default function Login() {
             </p>
           </div>
 
-          <Form.Root onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <FormField
               name="email"
               label="Email"
@@ -76,7 +76,7 @@ export default function Login() {
                 </Link>
               </p>
             </div>
-          </Form.Root>
+          </Form>
         </div>
       </div>
     </div>

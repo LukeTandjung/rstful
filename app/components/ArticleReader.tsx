@@ -30,7 +30,7 @@ export function ArticleReader({ article, onToggleStar }: ArticleReaderProps) {
 
           <button
             onClick={() => onToggleStar?.(article.id)}
-            className="flex-shrink-0 p-2 hover:bg-background-select rounded"
+            className="shrink-0 p-2 hover:bg-background-select rounded"
           >
             {article.isStarred ? (
               <StarIconSolid className="size-6 text-urgent" />

@@ -54,7 +54,7 @@ export function ArticleListItem({
             e.stopPropagation();
             onToggleStar?.(article.id);
           }}
-          className="flex-shrink-0 p-1 hover:bg-background-select rounded"
+          className="shrink-0 p-1 hover:bg-background-select rounded"
         >
           {article.isStarred ? (
             <StarIconSolid className="size-5 text-urgent" />

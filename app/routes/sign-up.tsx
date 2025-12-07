@@ -46,12 +46,8 @@ export default function SignUp() {
             </p>
           </div>
 
-          <Form.Root onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <FormField
-              name="name"
-              label="Name"
-              placeholder="Your full name"
-            />
+          <Form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <FormField name="name" label="Name" placeholder="Your full name" />
 
             <FormField
               name="email"
@@ -83,7 +79,7 @@ export default function SignUp() {
                 </Link>
               </p>
             </div>
-          </Form.Root>
+          </Form>
         </div>
       </div>
     </div>

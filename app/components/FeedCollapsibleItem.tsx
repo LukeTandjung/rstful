@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Collapsible } from "@base-ui-components/react/collapsible";
+import { Button } from "@base-ui-components/react/button";
 import { ChevronRightIcon, ChevronDownIcon } from "@heroicons/react/16/solid";
 import type { RssFeed } from "types";
 import { EditFeedDialog } from "./EditFeedDialog";
@@ -50,8 +51,8 @@ export function FeedCollapsibleItem({
                 feed.status === "active"
                   ? "bg-ok"
                   : feed.status === "error"
-                  ? "bg-error"
-                  : "bg-urgent"
+                    ? "bg-error"
+                    : "bg-urgent"
               } px-2.5 rounded-lg font-normal text-base leading-7 text-text`}
             >
               {feed.status}
@@ -75,14 +76,18 @@ export function FeedCollapsibleItem({
 
         {/* Button Group */}
         <div className="flex gap-7 w-full mt-5">
-          <button
+          <Button
             onClick={() => onRefresh?.(feed.id)}
             className="bg-background-select px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text"
           >
             Refresh
-          </button>
+          </Button>
           <EditFeedDialog feed={feed} />
-          <RemoveFeedDialog feedName={feed.name} feedId={feed.id} onRemove={onRemove} />
+          <RemoveFeedDialog
+            feedName={feed.name}
+            feedId={feed.id}
+            onRemove={onRemove}
+          />
         </div>
       </Collapsible.Panel>
     </Collapsible.Root>

@@ -14,6 +14,9 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/home": {
+    params: {};
+  };
   "/starred": {
     params: {};
   };
@@ -29,19 +32,20 @@ type Pages = {
   "/sign-up": {
     params: {};
   };
-  "/styles": {
-    params: {};
-  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/starred" | "/chat" | "/settings" | "/login" | "/sign-up" | "/styles";
+    page: "/" | "/home" | "/starred" | "/chat" | "/settings" | "/login" | "/sign-up";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
     page: "/";
+  };
+  "routes/home.tsx": {
+    id: "routes/home";
+    page: "/home";
   };
   "routes/starred.tsx": {
     id: "routes/starred";
@@ -63,19 +67,15 @@ type RouteFiles = {
     id: "routes/sign-up";
     page: "/sign-up";
   };
-  "routes/styles.tsx": {
-    id: "routes/styles";
-    page: "/styles";
-  };
 };
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/_index": typeof import("./app/routes/_index.tsx");
+  "routes/home": typeof import("./app/routes/home.tsx");
   "routes/starred": typeof import("./app/routes/starred.tsx");
   "routes/chat": typeof import("./app/routes/chat.tsx");
   "routes/settings": typeof import("./app/routes/settings.tsx");
   "routes/login": typeof import("./app/routes/login.tsx");
   "routes/sign-up": typeof import("./app/routes/sign-up.tsx");
-  "routes/styles": typeof import("./app/routes/styles.tsx");
 };

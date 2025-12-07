@@ -163,7 +163,7 @@ name='nix-shell-env'
 export name
 nativeBuildInputs='/nix/store/g6f8f0rm7vhn7mld018x0q9zgnk07z0g-bun-1.3.2'
 export nativeBuildInputs
-out='/Users/luketandjung/Projects/enki/outputs/out'
+out='/Users/luketandjung/Projects/rstful/outputs/out'
 export out
 outputBin='out'
 outputDev='out'
@@ -194,7 +194,7 @@ preConfigurePhases=' updateAutotoolsGnuConfigScriptsPhase'
 declare -a preFixupHooks=('_moveToShare' '_multioutDocs' '_multioutDevs' )
 preferLocalBuild='1'
 export preferLocalBuild
-prefix='/Users/luketandjung/Projects/enki/outputs/out'
+prefix='/Users/luketandjung/Projects/rstful/outputs/out'
 declare -a propagatedBuildDepFiles=('propagated-build-build-deps' 'propagated-native-build-inputs' 'propagated-build-target-deps' )
 propagatedBuildInputs=''
 export propagatedBuildInputs

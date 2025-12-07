@@ -1,5 +1,4 @@
 import { Field } from "@base-ui-components/react/field";
-import type { ReactNode } from "react";
 
 interface FormFieldProps {
   label: string;
@@ -19,20 +18,13 @@ export function FormField({
   defaultValue,
 }: FormFieldProps) {
   return (
-    <Field.Root
-      className="flex flex-col gap-2.5 w-full"
-      name={name}
-    >
-      <Field.Label
-        className="font-normal text-lg leading-7 text-text"
-      >
+    <Field.Root className="flex flex-col gap-2.5 w-full" name={name}>
+      <Field.Label className="font-normal text-lg leading-7 text-text">
         {label}
       </Field.Label>
 
       {description && (
-        <Field.Description
-          className="font-light text-base leading-7 text-text-alt"
-        >
+        <Field.Description className="font-light text-base leading-7 text-text-alt">
           {description}
         </Field.Description>
       )}
