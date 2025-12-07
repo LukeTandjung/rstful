@@ -5,5 +5,7 @@ export default [
   route("starred", "routes/starred.tsx"),
   route("chat", "routes/chat.tsx"),
   route("settings", "routes/settings.tsx"),
+  route("login", "routes/login.tsx"),
+  route("sign-up", "routes/sign-up.tsx"),
   route("styles", "routes/styles.tsx"),
 ] satisfies RouteConfig;

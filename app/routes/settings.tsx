@@ -1,6 +1,7 @@
 import type { Route } from "./+types/settings";
 import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
+import { Switch } from "@base-ui-components/react/switch";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, MenuBar, TokenProgress } from "components";
@@ -92,14 +93,12 @@ export default function Settings() {
                             Automatically check for new articles
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            defaultChecked
-                          />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
-                        </label>
+                        <Switch.Root
+                          defaultChecked
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
+                        >
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                        </Switch.Root>
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -111,10 +110,9 @@ export default function Settings() {
                             Automatically mark articles as read when scrolled past
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
-                        </label>
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                        </Switch.Root>
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -126,14 +124,12 @@ export default function Settings() {
                             Display unread article counts in feed list
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            defaultChecked
-                          />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
-                        </label>
+                        <Switch.Root
+                          defaultChecked
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
+                        >
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                        </Switch.Root>
                       </div>
                     </div>
                   </div>
@@ -159,14 +155,12 @@ export default function Settings() {
                             Open article links in a new browser tab
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            defaultChecked
-                          />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
-                        </label>
+                        <Switch.Root
+                          defaultChecked
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
+                        >
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                        </Switch.Root>
                       </div>
 
                       <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
@@ -178,14 +172,12 @@ export default function Settings() {
                             Display full content instead of summaries
                           </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            defaultChecked
-                          />
-                          <div className="w-11 h-6 bg-border-unfocus peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-border-focus"></div>
-                        </label>
+                        <Switch.Root
+                          defaultChecked
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
+                        >
+                          <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                        </Switch.Root>
                       </div>
                     </div>
                   </div>
