@@ -5,6 +5,7 @@ import { Switch } from "@base-ui-components/react/switch";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, MenuBar, TokenProgress } from "components";
+import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,6 +18,17 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Settings() {
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [markAsReadOnScroll, setMarkAsReadOnScroll] = useState(false);
+  const [showUnreadCount, setShowUnreadCount] = useState(true);
+  const [openLinksInNewTab, setOpenLinksInNewTab] = useState(true);
+  const [showFullContent, setShowFullContent] = useState(true);
+
+  const handleLogout = () => {
+    // Add logout logic here
+    console.log("Logging out...");
+  };
+
   return (
     <div className="bg-background flex flex-col h-screen w-full">
       <div className="h-[300px] relative w-full shrink-0">
@@ -94,7 +106,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked
+                          checked={autoRefresh}
+                          onCheckedChange={setAutoRefresh}
                           className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
@@ -110,7 +123,11 @@ export default function Settings() {
                             Automatically mark articles as read when scrolled past
                           </div>
                         </div>
-                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
+                        <Switch.Root
+                          checked={markAsReadOnScroll}
+                          onCheckedChange={setMarkAsReadOnScroll}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
+                        >
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -125,7 +142,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked
+                          checked={showUnreadCount}
+                          onCheckedChange={setShowUnreadCount}
                           className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
@@ -156,7 +174,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked
+                          checked={openLinksInNewTab}
+                          onCheckedChange={setOpenLinksInNewTab}
                           className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
@@ -173,7 +192,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <Switch.Root
-                          defaultChecked
+                          checked={showFullContent}
+                          onCheckedChange={setShowFullContent}
                           className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
                         >
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
@@ -222,7 +242,7 @@ export default function Settings() {
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between py-3">
+                      <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
                         <div className="flex flex-col gap-1">
                           <div className="font-medium text-base leading-6 text-text">
                             Import feeds (OPML)
@@ -234,6 +254,37 @@ export default function Settings() {
                         <button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
                           Import
                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Section */}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-semibold text-lg leading-7 text-text">
+                        Account
+                      </h3>
+                      <p className="font-normal text-sm leading-6 text-text-alt">
+                        Manage your account settings
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-4 pl-4">
+                      <div className="flex items-center justify-between py-3">
+                        <div className="flex flex-col gap-1">
+                          <div className="font-medium text-base leading-6 text-text">
+                            Sign out
+                          </div>
+                          <div className="font-normal text-sm leading-5 text-text-alt">
+                            Sign out of your account
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handleLogout}
+                          className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium text-sm transition-colors"
+                        >
+                          Logout
+                        </Button>
                       </div>
                     </div>
                   </div>
