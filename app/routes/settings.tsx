@@ -5,7 +5,7 @@ import { Switch } from "@base-ui-components/react/switch";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, MenuBar, TokenProgress } from "components";
-import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -18,15 +18,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Settings() {
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [markAsReadOnScroll, setMarkAsReadOnScroll] = useState(false);
-  const [showUnreadCount, setShowUnreadCount] = useState(true);
-  const [openLinksInNewTab, setOpenLinksInNewTab] = useState(true);
-  const [showFullContent, setShowFullContent] = useState(true);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     // Add logout logic here
     console.log("Logging out...");
+    navigate("/login");
   };
 
   return (
@@ -105,11 +102,7 @@ export default function Settings() {
                             Automatically check for new articles
                           </div>
                         </div>
-                        <Switch.Root
-                          checked={autoRefresh}
-                          onCheckedChange={setAutoRefresh}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
-                        >
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -123,11 +116,7 @@ export default function Settings() {
                             Automatically mark articles as read when scrolled past
                           </div>
                         </div>
-                        <Switch.Root
-                          checked={markAsReadOnScroll}
-                          onCheckedChange={setMarkAsReadOnScroll}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
-                        >
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -141,11 +130,7 @@ export default function Settings() {
                             Display unread article counts in feed list
                           </div>
                         </div>
-                        <Switch.Root
-                          checked={showUnreadCount}
-                          onCheckedChange={setShowUnreadCount}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
-                        >
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -173,11 +158,7 @@ export default function Settings() {
                             Open article links in a new browser tab
                           </div>
                         </div>
-                        <Switch.Root
-                          checked={openLinksInNewTab}
-                          onCheckedChange={setOpenLinksInNewTab}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
-                        >
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -191,11 +172,7 @@ export default function Settings() {
                             Display full content instead of summaries
                           </div>
                         </div>
-                        <Switch.Root
-                          checked={showFullContent}
-                          onCheckedChange={setShowFullContent}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors"
-                        >
+                        <Switch.Root className="relative inline-flex h-6 w-11 items-center rounded-full bg-border-unfocus data-[state=checked]:bg-border-focus transition-colors">
                           <Switch.Thumb className="inline-block h-5 w-5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
                         </Switch.Root>
                       </div>
@@ -281,7 +258,7 @@ export default function Settings() {
                         </div>
                         <Button
                           onClick={handleLogout}
-                          className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium text-sm transition-colors"
+                          className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
                         >
                           Logout
                         </Button>
