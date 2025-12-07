@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: "Inconsolata", monospace;
+
+  /* Kanagawa colour palette */
+  --color-*: initial;
+  --color-background: #1f1f28;
+  --color-background-alt: #16161d;
+  --color-background-select: #223249;
+  --color-text: #dcd7ba;
+  --color-text-alt: #727169;
+  --color-border-focus: #7e9cd8;
+  --color-border-unfocus: #54546d;
+  --color-ok: #76946a;
+  --color-urgent: #c0a36e;
+  --color-warning: #ffa066;
+  --color-error: #c34043;
+
+  /* Custom Font Size (not in base Tailwind) */
+  --font-size-xxs: 10px;
+}
+
+html,
+body {
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+  }
+}

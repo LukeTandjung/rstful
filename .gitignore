@@ -1,0 +1,10 @@
+.DS_Store
+# .env # Removed by Orchids to allow .env files
+/node_modules/
+
+# React Router
+/.react-router/
+/build/
+
+# Nix Files
+/.direnv/
