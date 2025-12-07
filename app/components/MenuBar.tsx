@@ -27,7 +27,7 @@ export function MenuBar() {
               <Link to="/">
                 <NavigationMenu.Trigger 
                   data-active={isActive("/")}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Feeds
                 </NavigationMenu.Trigger>
@@ -38,7 +38,7 @@ export function MenuBar() {
               <Link to="/starred">
                 <NavigationMenu.Trigger 
                   data-active={isActive("/starred")}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Starred
                 </NavigationMenu.Trigger>
@@ -49,7 +49,7 @@ export function MenuBar() {
               <Link to="/chat">
                 <NavigationMenu.Trigger 
                   data-active={isActive("/chat")}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Chat
                 </NavigationMenu.Trigger>
@@ -65,7 +65,7 @@ export function MenuBar() {
               <Link to="/settings">
                 <NavigationMenu.Trigger 
                   data-active={isActive("/settings")}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:border data-[active=true]:border-border-focus data-[active=true]:bg-background-select"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors data-[active=true]:text-border-focus"
                 >
                   Settings
                 </NavigationMenu.Trigger>
