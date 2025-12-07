@@ -19,16 +19,18 @@ export function MenuBar() {
           <NavigationMenu.List className="flex h-full items-center justify-end gap-6">
             <NavigationMenu.Item className="flex items-center">
               <Link to="/">
-                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text">
+                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
                   Feeds
                 </NavigationMenu.Trigger>
               </Link>
             </NavigationMenu.Item>
 
             <NavigationMenu.Item className="flex items-center">
-              <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text">
-                Starred
-              </NavigationMenu.Trigger>
+              <Link to="/starred">
+                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
+                  Starred
+                </NavigationMenu.Trigger>
+              </Link>
             </NavigationMenu.Item>
 
             <Separator
@@ -37,9 +39,11 @@ export function MenuBar() {
             />
 
             <NavigationMenu.Item className="flex items-center">
-              <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text">
-                Settings
-              </NavigationMenu.Trigger>
+              <Link to="/settings">
+                <NavigationMenu.Trigger className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text hover:bg-surface-alt transition-colors">
+                  Settings
+                </NavigationMenu.Trigger>
+              </Link>
             </NavigationMenu.Item>
           </NavigationMenu.List>
         </NavigationMenu.Root>

@@ -81,6 +81,28 @@ export class RssService {
       return articles;
     });
 
+  // Fetch starred articles across all feeds
+  static fetchStarredArticles = Effect.gen(function* () {
+    yield* Effect.sleep("150 millis");
+    
+    // Simulated starred articles from multiple feeds
+    const starredArticles: RssArticle[] = Array.from({ length: 8 }, (_, i) => ({
+      id: `starred-article-${i}`,
+      feedId: `${(i % 3) + 1}`,
+      feedName: i % 3 === 0 ? "Hacker News" : i % 3 === 1 ? "TechCrunch" : "The Verge",
+      title: `Starred Article ${i + 1}: Important Topic on ${i % 3 === 0 ? "Programming" : i % 3 === 1 ? "Startups" : "Technology"}`,
+      link: `https://example.com/starred-${i}`,
+      description: `This is an important starred article that you saved for later reading. It covers essential topics in the tech industry.`,
+      content: `<p>Full starred article content goes here with detailed information about the topic.</p>`,
+      author: i % 2 === 0 ? "Jane Doe" : "John Smith",
+      pubDate: new Date(Date.now() - i * 7200000),
+      isRead: i < 3,
+      isStarred: true,
+    }));
+    
+    return starredArticles;
+  });
+
   // Refresh a specific feed
   static refreshFeed = (feedId: string) =>
     Effect.gen(function* () {
