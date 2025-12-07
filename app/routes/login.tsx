@@ -46,17 +46,17 @@ export default function Login() {
           </div>
 
           <Form.Root onSubmit={handleSubmit} className="flex flex-col gap-6">
-            // <FormField
-            //   name="email"
-            //   label="Email"
-            //   placeholder="you@example.com"
-            // />
+            <FormField
+              name="email"
+              label="Email"
+              placeholder="you@example.com"
+            />
 
-            // <FormField
-            //   name="password"
-            //   label="Password"
-            //   placeholder="Enter your password"
-            // />
+            <FormField
+              name="password"
+              label="Password"
+              placeholder="Enter your password"
+            />
 
             <Button
               type="submit"
