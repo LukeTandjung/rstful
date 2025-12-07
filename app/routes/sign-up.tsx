@@ -1,7 +1,7 @@
 import type { Route } from "./+types/sign-up";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
-import { FormField } from "../components";
+import { FormField } from "components";
 import { Link } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
