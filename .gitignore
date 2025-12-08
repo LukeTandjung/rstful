@@ -8,3 +8,5 @@
 
 # Nix Files
 /.direnv/
+
+.env.local
