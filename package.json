@@ -7,10 +7,8 @@
   ],
   "scripts": {
     "dev": "react-router dev",
-    "dev:api": "bun --watch src/index.ts",
     "build": "react-router build",
     "start": "react-router-serve ./build/server/index.js",
-    "start:api": "bun src/index.ts",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
@@ -21,7 +19,6 @@
     "@react-router/serve": "7.10.1",
     "@rstful/shared": "workspace:*",
     "effect": "^3.19.9",
-    "elysia": "^1.4.18",
     "isbot": "^5.1.31",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
