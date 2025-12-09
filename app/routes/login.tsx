@@ -2,7 +2,7 @@ import type { Route } from "./+types/login";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
 import { AuthService } from "services/auth";
@@ -16,6 +16,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Login() {
+  const navigate = useNavigate();
   const [error, setError] = React.useState<string | null>(null);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -32,6 +33,7 @@ export default function Login() {
     const program = Effect.gen(function* () {
       const authService = yield* AuthService;
       yield* authService.login(email, password);
+      navigate("/");
     }).pipe(
       Effect.catchTags({
         AuthenticationError: (error) =>
@@ -75,11 +77,21 @@ export default function Login() {
               placeholder="you@example.com"
             />
 
-            <FormField
-              name="password"
-              label="Password"
-              placeholder="Enter your password"
-            />
+            <div className="flex flex-col gap-2">
+              <FormField
+                name="password"
+                label="Password"
+                placeholder="Enter your password"
+              />
+              <div className="text-right">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-border-focus hover:underline font-medium"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
 
             {error && (
               <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">

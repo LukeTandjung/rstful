@@ -2,7 +2,7 @@ import type { Route } from "./+types/sign-up";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
 import { AuthService } from "services/auth";
@@ -16,6 +16,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function SignUp() {
+  const navigate = useNavigate();
+
   const [error, setError] = React.useState<string | null>(null);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -33,6 +35,7 @@ export default function SignUp() {
     const program = Effect.gen(function* () {
       const authService = yield* AuthService;
       yield* authService.sign_up(name, email, password);
+      navigate("/verify-email");
     }).pipe(
       Effect.catchTags({
         ValidationError: (error) =>
