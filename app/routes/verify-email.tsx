@@ -1,7 +1,7 @@
 import type { Route } from "./+types/verify-email";
 import { Button } from "@base-ui-components/react/button";
 import { Link } from "react-router";
-import { useState } from "react";
+import * as React from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -11,8 +11,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function VerifyEmail() {
-  const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
+  const [resending, setResending] = React.useState(false);
+  const [resent, setResent] = React.useState(false);
 
   const handleResend = () => {
     setResending(true);

@@ -3,7 +3,7 @@ import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
 import { Link } from "react-router";
-import { useState } from "react";
+import * as React from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -13,7 +13,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function ForgotPassword() {
-  const [emailSent, setEmailSent] = useState(false);
+  const [emailSent, setEmailSent] = React.useState(false);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

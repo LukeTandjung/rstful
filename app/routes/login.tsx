@@ -5,7 +5,7 @@ import { FormField } from "components";
 import { Link, useNavigate } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
-import { AuthService } from "services/auth";
+import { AuthService, Email, Password } from "services/auth";
 import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
@@ -22,8 +22,8 @@ export default function Login() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = formData.get("email") as Email;
+    const password = formData.get("password") as Password;
 
     if (!appRuntime) {
       setError("App not initialized");
