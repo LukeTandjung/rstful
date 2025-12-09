@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Route } from "./+types/_index";
+import type { Route } from "./+types/index";
 import type { RssFeed, RssArticle } from "types";
 import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";

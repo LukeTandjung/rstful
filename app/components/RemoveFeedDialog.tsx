@@ -3,7 +3,7 @@ import { AlertDialog } from "@base-ui-components/react/alert-dialog";
 interface RemoveFeedDialogProps {
   feedName: string;
   feedId: string;
-  onRemove?: (feedId: string) => void;
+  onRemove?: ((feedId: string) => void) | undefined;
 }
 
 export function RemoveFeedDialog({

@@ -30,8 +30,8 @@ export function CustomSelect({
       <Select.Root
         value={value}
         defaultValue={defaultValue}
-        onValueChange={(newValue: string | null) => {
-          if (newValue !== null) {
+        onValueChange={(newValue) => {
+          if (newValue != null) {
             onValueChange?.(newValue);
           }
         }}

@@ -64,19 +64,26 @@ export class RssService {
     Effect.gen(function* () {
       yield* Effect.sleep("150 millis");
       
-      const articles: RssArticle[] = Array.from({ length: 15 }, (_, i) => ({
-        id: `${feedId}-article-${i}`,
-        feedId,
-        feedName: "Sample Feed",
-        title: `Article ${i + 1}: Understanding Effect-TS and Functional Programming`,
-        link: `https://example.com/article-${i}`,
-        description: `This is a sample article description that provides a brief overview of the content. It discusses various aspects of modern software development and best practices.`,
-        content: `<p>Full article content goes here. This would typically contain the complete HTML content of the article.</p>`,
-        author: i % 3 === 0 ? "John Doe" : i % 3 === 1 ? "Jane Smith" : undefined,
-        pubDate: new Date(Date.now() - i * 3600000),
-        isRead: i < 5,
-        isStarred: i % 4 === 0,
-      }));
+      const articles: RssArticle[] = Array.from({ length: 15 }, (_, i) => {
+        const baseArticle = {
+          id: `${feedId}-article-${i}`,
+          feedId,
+          feedName: "Sample Feed",
+          title: `Article ${i + 1}: Understanding Effect-TS and Functional Programming`,
+          link: `https://example.com/article-${i}`,
+          description: `This is a sample article description that provides a brief overview of the content. It discusses various aspects of modern software development and best practices.`,
+          content: `<p>Full article content goes here. This would typically contain the complete HTML content of the article.</p>`,
+          pubDate: new Date(Date.now() - i * 3600000),
+          isRead: i < 5,
+          isStarred: i % 4 === 0,
+        };
+
+        return i % 3 === 0
+          ? { ...baseArticle, author: "John Doe" }
+          : i % 3 === 1
+          ? { ...baseArticle, author: "Jane Smith" }
+          : baseArticle;
+      });
       
       return articles;
     });
