@@ -23,6 +23,12 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "plugins": [
+      {
+        "name": "@effect/languag-service"
+      }
+    ]
   }
 }
