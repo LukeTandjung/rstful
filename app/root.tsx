@@ -6,9 +6,15 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
+import { ConvexReactClient } from "convex/react";
+import * as React from "react";
 
 import type { Route } from "./+types/root";
+import { createAppRuntime, disposeAppRuntime } from "services/runtime";
 import "./app.css";
+
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -42,7 +48,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const convexAuthActions = useAuthActions();
+
+  React.useEffect(() => {
+    createAppRuntime(convexAuthActions);
+    return () => disposeAppRuntime();
+  }, [convexAuthActions]);
+
+  return (
+    <ConvexAuthProvider client={convex}>
+      <Outlet />
+    </ConvexAuthProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

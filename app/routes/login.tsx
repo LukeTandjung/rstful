@@ -3,6 +3,10 @@ import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
 import { Link } from "react-router";
+import * as React from "react";
+import { Effect } from "effect";
+import { AuthService } from "services/auth";
+import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,14 +16,33 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Login() {
+  const [error, setError] = React.useState<string | null>(null);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    console.log("Login:", {
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    // TODO: Implement actual login logic
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (!appRuntime) {
+      setError("App not initialized");
+      return;
+    }
+
+    const program = Effect.gen(function* () {
+      const authService = yield* AuthService;
+      yield* authService.login(email, password);
+    }).pipe(
+      Effect.catchTags({
+        AuthenticationError: (error) =>
+          Effect.sync(() => {
+            setError("Login failed. Please check your credentials.");
+            console.error(error);
+          }),
+      }),
+    );
+
+    appRuntime.runPromise(program);
   };
 
   return (
@@ -57,6 +80,12 @@ export default function Login() {
               label="Password"
               placeholder="Enter your password"
             />
+
+            {error && (
+              <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
             <Button
               type="submit"

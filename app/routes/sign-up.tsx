@@ -3,6 +3,10 @@ import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
 import { Link } from "react-router";
+import * as React from "react";
+import { Effect } from "effect";
+import { AuthService } from "services/auth";
+import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,15 +16,41 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function SignUp() {
+  const [error, setError] = React.useState<string | null>(null);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    console.log("Sign up:", {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    // TODO: Implement actual sign-up logic
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (!appRuntime) {
+      setError("App not initialized");
+      return;
+    }
+
+    const program = Effect.gen(function* () {
+      const authService = yield* AuthService;
+      yield* authService.sign_up(name, email, password);
+    }).pipe(
+      Effect.catchTags({
+        ValidationError: (error) =>
+          Effect.sync(() => {
+            setError(
+              "Invalid email or password format. Password must be 8+ characters with a number and special character.",
+            );
+            console.error(error);
+          }),
+        AuthenticationError: (error) =>
+          Effect.sync(() => {
+            setError("Sign up failed. This email may already be in use.");
+            console.error(error);
+          }),
+      }),
+    );
+
+    appRuntime.runPromise(program);
   };
 
   return (
@@ -60,6 +90,12 @@ export default function SignUp() {
               label="Password"
               placeholder="Create a password"
             />
+
+            {error && (
+              <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
             <Button
               type="submit"
