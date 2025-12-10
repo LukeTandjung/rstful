@@ -1,21 +1,21 @@
-import type { Route } from "./+types/verify-email";
+import type { Route } from "./+types/reset-password";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
 import { Link, useNavigate } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
-import { AuthService, Email } from "services/auth";
+import { AuthService, Email, Password } from "services/auth";
 import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Verify Email - RSS Reader" },
-    { name: "description", content: "Verify your email address" },
+    { title: "Reset Password - RSS Reader" },
+    { name: "description", content: "Reset your RSS Reader password" },
   ];
 }
 
-export default function VerifyEmail() {
+export default function ResetPassword() {
   const navigate = useNavigate();
   const [error, setError] = React.useState<string | null>(null);
 
@@ -24,6 +24,7 @@ export default function VerifyEmail() {
     const formData = new FormData(event.currentTarget);
     const email = formData.get("email") as Email;
     const code = formData.get("code") as string;
+    const newPassword = formData.get("newPassword") as Password;
 
     if (!appRuntime) {
       setError("App not initialized");
@@ -32,19 +33,21 @@ export default function VerifyEmail() {
 
     const program = Effect.gen(function* () {
       const authService = yield* AuthService;
-      yield* authService.verify_email(email, code);
-      navigate("/");
+      yield* authService.reset_password(email, code, newPassword);
+      navigate("/login");
     }).pipe(
       Effect.catchTags({
         ValidationError: (error) =>
           Effect.sync(() => {
-            setError("Invalid email format.");
+            setError(
+              "Invalid email or password format. Password must be 8+ characters with a number and special character.",
+            );
             console.error(error);
           }),
         AuthenticationError: (error) =>
           Effect.sync(() => {
             setError(
-              "Email verification failed. Please check your email and code.",
+              "Password reset failed. Please check your email and code.",
             );
             console.error(error);
           }),
@@ -65,15 +68,15 @@ export default function VerifyEmail() {
         />
       </div>
 
-      {/* Right side - Verify Email Form */}
+      {/* Right side - Reset Password Form */}
       <div className="flex flex-col justify-center w-full lg:w-1/2 bg-background px-8 py-12 sm:px-12 lg:px-16">
         <div className="mx-auto w-full max-w-md">
           <div className="mb-8">
             <h1 className="font-bold text-3xl leading-9 text-text mb-2">
-              Verify your email
+              Reset your password
             </h1>
             <p className="font-normal text-base leading-6 text-text-alt">
-              Enter the verification code sent to your email address
+              Enter the verification code from your email and your new password
             </p>
           </div>
 
@@ -90,6 +93,12 @@ export default function VerifyEmail() {
               placeholder="Enter the code from your email"
             />
 
+            <FormField
+              name="newPassword"
+              label="New Password"
+              placeholder="Create a new password"
+            />
+
             {error && (
               <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -100,17 +109,17 @@ export default function VerifyEmail() {
               type="submit"
               className="w-full bg-border-focus hover:bg-border-focus/80 px-4 py-3 rounded-lg font-medium text-base leading-6 text-text transition-colors mt-2"
             >
-              Verify Email
+              Reset Password
             </Button>
 
             <div className="text-center">
               <p className="font-normal text-sm leading-6 text-text-alt">
-                Back to{" "}
+                Remember your password?{" "}
                 <Link
                   to="/login"
                   className="text-border-focus hover:underline font-medium"
                 >
-                  Login
+                  Back to login
                 </Link>
               </p>
             </div>

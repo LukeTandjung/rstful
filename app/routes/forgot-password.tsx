@@ -4,6 +4,9 @@ import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
 import { Link } from "react-router";
 import * as React from "react";
+import { Effect } from "effect";
+import { AuthService, Email } from "services/auth";
+import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -14,15 +17,38 @@ export function meta({}: Route.MetaArgs) {
 
 export default function ForgotPassword() {
   const [emailSent, setEmailSent] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    console.log("Forgot password:", {
-      email: formData.get("email"),
-    });
-    // TODO: Implement actual forgot password logic
-    setEmailSent(true);
+    const email = formData.get("email") as Email;
+
+    if (!appRuntime) {
+      setError("App not initialized");
+      return;
+    }
+
+    const program = Effect.gen(function* () {
+      const authService = yield* AuthService;
+      yield* authService.request_password_reset(email);
+      setEmailSent(true);
+    }).pipe(
+      Effect.catchTags({
+        ValidationError: (error) =>
+          Effect.sync(() => {
+            setError("Invalid email format.");
+            console.error(error);
+          }),
+        AuthenticationError: (error) =>
+          Effect.sync(() => {
+            setError("Failed to send password reset email. Please try again.");
+            console.error(error);
+          }),
+      }),
+    );
+
+    appRuntime.runPromise(program);
   };
 
   return (
@@ -30,7 +56,7 @@ export default function ForgotPassword() {
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/4776b226-4f34-4fe7-ae89-3d4ab73b0ec4/generated_images/japanese-harbor-scene-with-boats-and-mou-bcad3e72-20251207045227.jpg"
+          src="/assets/yoshida_login.jpg"
           alt="Japanese harbor scene"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -57,6 +83,12 @@ export default function ForgotPassword() {
                   label="Email"
                   placeholder="you@example.com"
                 />
+
+                {error && (
+                  <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
                 <Button
                   type="submit"

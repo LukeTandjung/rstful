@@ -61,7 +61,7 @@ export default function SignUp() {
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/4776b226-4f34-4fe7-ae89-3d4ab73b0ec4/generated_images/japanese-harbor-scene-with-boats-and-mou-bcad3e72-20251207045227.jpg"
+          src="/assets/yoshida_login.jpg"
           alt="Japanese harbor scene"
           className="absolute inset-0 w-full h-full object-cover"
         />

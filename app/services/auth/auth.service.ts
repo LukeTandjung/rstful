@@ -16,6 +16,18 @@ export class AuthService extends Context.Tag("AuthService")<
       password: Password,
     ) => Effect.Effect<void, AuthenticationError>;
     readonly logout: Effect.Effect<void, AuthenticationError>;
+    readonly verify_email: (
+      email: Email,
+      code: string,
+    ) => Effect.Effect<void, AuthenticationError | ValidationError>;
+    readonly request_password_reset: (
+      email: Email,
+    ) => Effect.Effect<void, AuthenticationError | ValidationError>;
+    readonly reset_password: (
+      email: Email,
+      code: string,
+      new_password: Password,
+    ) => Effect.Effect<void, AuthenticationError | ValidationError>;
   }
 >() {}
 

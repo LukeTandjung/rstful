@@ -50,6 +50,69 @@ export const AuthServiceLive = Layer.effect(
         try: () => convexAuth.use_actions.signOut(),
         catch: () => new AuthenticationError(),
       }),
+
+      verify_email: (email: string, code: string) =>
+        Effect.try(() => Email(email)).pipe(
+          Effect.mapError(() => new ValidationError()),
+          Effect.flatMap((validEmail) =>
+            Effect.sync(() => {
+              const formData = new FormData();
+              formData.append("email", validEmail);
+              formData.append("code", code);
+              formData.append("flow", "email-verification");
+              return formData;
+            })
+          ),
+          Effect.flatMap((formData) =>
+            Effect.tryPromise({
+              try: () => convexAuth.use_actions.signIn("password", formData),
+              catch: () => new AuthenticationError(),
+            })
+          )
+        ),
+
+      request_password_reset: (email: string) =>
+        Effect.try(() => Email(email)).pipe(
+          Effect.mapError(() => new ValidationError()),
+          Effect.flatMap((validEmail) =>
+            Effect.sync(() => {
+              const formData = new FormData();
+              formData.append("email", validEmail);
+              formData.append("flow", "reset");
+              return formData;
+            })
+          ),
+          Effect.flatMap((formData) =>
+            Effect.tryPromise({
+              try: () => convexAuth.use_actions.signIn("password", formData),
+              catch: () => new AuthenticationError(),
+            })
+          )
+        ),
+
+      reset_password: (email: string, code: string, new_password: string) =>
+        Effect.all([
+          Effect.try(() => Email(email)),
+          Effect.try(() => Password(new_password))
+        ]).pipe(
+          Effect.mapError(() => new ValidationError()),
+          Effect.flatMap(([validEmail, validPassword]) =>
+            Effect.sync(() => {
+              const formData = new FormData();
+              formData.append("email", validEmail);
+              formData.append("code", code);
+              formData.append("newPassword", validPassword);
+              formData.append("flow", "reset-verification");
+              return formData;
+            })
+          ),
+          Effect.flatMap((formData) =>
+            Effect.tryPromise({
+              try: () => convexAuth.use_actions.signIn("password", formData),
+              catch: () => new AuthenticationError(),
+            })
+          )
+        ),
     })),
   ),
 );

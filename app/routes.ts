@@ -8,6 +8,7 @@ import {
 export default [
   route("login", "routes/login.tsx"),
   route("forgot-password", "routes/forgot-password.tsx"),
+  route("reset-password", "routes/reset-password.tsx"),
   route("sign-up", "routes/sign-up.tsx"),
   route("verify-email.tsx", "routes/verify-email.tsx"),
   layout("routes/_app/_layout.tsx", [
