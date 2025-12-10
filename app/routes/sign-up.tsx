@@ -40,14 +40,12 @@ export default function SignUp() {
       Effect.catchTags({
         ValidationError: (error) =>
           Effect.sync(() => {
-            setError(
-              "Invalid email or password format. Password must be 8+ characters with a number and special character.",
-            );
+            setError(error.message);
             console.error(error);
           }),
         AuthenticationError: (error) =>
           Effect.sync(() => {
-            setError("Sign up failed. This email may already be in use.");
+            setError(error.message);
             console.error(error);
           }),
       }),
@@ -92,6 +90,7 @@ export default function SignUp() {
               name="password"
               label="Password"
               placeholder="Create a password"
+              type="password"
             />
 
             {error && (

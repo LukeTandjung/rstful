@@ -2,8 +2,10 @@ import { Data } from "effect";
 
 export class AuthenticationError extends Data.TaggedError(
   "AuthenticationError",
-)<Readonly<{}>> {}
+)<{
+  readonly message: string;
+}> {}
 
-export class ValidationError extends Data.TaggedError("ValidationError")<
-  Readonly<{}>
-> {}
+export class ValidationError extends Data.TaggedError("ValidationError")<{
+  readonly message: string;
+}> {}

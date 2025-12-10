@@ -97,6 +97,7 @@ export default function ResetPassword() {
               name="newPassword"
               label="New Password"
               placeholder="Create a new password"
+              type="password"
             />
 
             {error && (

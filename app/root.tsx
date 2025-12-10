@@ -47,7 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+function AppContent() {
   const convexAuthActions = useAuthActions();
 
   React.useEffect(() => {
@@ -55,9 +55,13 @@ export default function App() {
     return () => disposeAppRuntime();
   }, [convexAuthActions]);
 
+  return <Outlet />;
+}
+
+export default function App() {
   return (
     <ConvexAuthProvider client={convex}>
-      <Outlet />
+      <AppContent />
     </ConvexAuthProvider>
   );
 }

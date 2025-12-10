@@ -9,13 +9,32 @@ export const AuthServiceLive = Layer.effect(
     Effect.map((convexAuth) => ({
       sign_up: (name: string, email: string, password: string) =>
         Effect.all([
-          Effect.try(() => Email(email)),
-          Effect.try(() => Password(password))
+          Effect.try({
+            try: () => {
+              if (!name || name.trim().length === 0) {
+                throw new Error("Name cannot be blank");
+              }
+              return name.trim();
+            },
+            catch: (e) => new ValidationError({
+              message: e instanceof Error ? e.message : "Name cannot be blank"
+            }),
+          }),
+          Effect.try({
+            try: () => Email(email),
+            catch: () => new ValidationError({ message: "Invalid email format" }),
+          }),
+          Effect.try({
+            try: () => Password(password),
+            catch: () => new ValidationError({
+              message: "Invalid password. Must be at least 8 characters with a number and special character"
+            }),
+          })
         ]).pipe(
-          Effect.mapError(() => new ValidationError()),
-          Effect.flatMap(([validEmail, validPassword]) =>
+          Effect.flatMap(([validName, validEmail, validPassword]) =>
             Effect.sync(() => {
               const formData = new FormData();
+              formData.append("name", validName);
               formData.append("email", validEmail);
               formData.append("password", validPassword);
               formData.append("flow", "signUp");
@@ -25,7 +44,7 @@ export const AuthServiceLive = Layer.effect(
           Effect.flatMap((formData) =>
             Effect.tryPromise({
               try: () => convexAuth.use_actions.signIn("password", formData),
-              catch: () => new AuthenticationError(),
+              catch: () => new AuthenticationError({ message: "Sign up failed. This email may already be in use." }),
             })
           )
         ),

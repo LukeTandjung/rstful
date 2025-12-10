@@ -5,6 +5,10 @@ import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, MenuBar, TokenProgress, CustomSwitch } from "components";
 import { useNavigate } from "react-router";
+import * as React from "react";
+import { Effect } from "effect";
+import { AuthService } from "services/auth";
+import { appRuntime } from "services/runtime";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -20,9 +24,26 @@ export default function Settings() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log("Logging out...");
-    navigate("/login");
+    if (!appRuntime) {
+      console.error("App not initialized");
+      return;
+    }
+
+    const program = Effect.gen(function* () {
+      const authService = yield* AuthService;
+      yield* authService.logout;
+      navigate("/login");
+    }).pipe(
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          console.error("Logout failed:", error);
+          // Navigate anyway even if logout fails
+          navigate("/login");
+        }),
+      ),
+    );
+
+    appRuntime.runPromise(program);
   };
 
   return (

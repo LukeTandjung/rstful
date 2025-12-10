@@ -82,6 +82,7 @@ export default function Login() {
                 name="password"
                 label="Password"
                 placeholder="Enter your password"
+                type="password"
               />
               <div className="text-right">
                 <Link
