@@ -5,6 +5,9 @@ import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { NewspaperIcon, RectangleStackIcon } from "@heroicons/react/16/solid";
 import { Effect } from "effect";
+import { useQuery, useMutation } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { api } from "convex/_generated/api";
 import {
   SectionCard,
   MenuBar,
@@ -13,7 +16,7 @@ import {
   ArticleListItem,
   ArticleReader,
 } from "components";
-import { RssService } from "services/rss.service";
+import { RssFeedService, make_rss_feed_service_live } from "services/rss_feed";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -26,6 +29,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  // TODO: Get actual user_id from auth
+  const user_id = "temp_user_id" as any; // Replace with actual auth
+
+  const queryFn = useQuery;
+  const mutateFn = useMutation;
+
   const [feeds, setFeeds] = useState<RssFeed[]>([]);
   const [articles, setArticles] = useState<RssArticle[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<RssArticle | null>(
@@ -34,89 +43,89 @@ export default function Home() {
   const [isLoadingFeeds, setIsLoadingFeeds] = useState(true);
   const [isLoadingArticles, setIsLoadingArticles] = useState(false);
 
+  // Create the service Layer
+  const RssFeedServiceLayer = make_rss_feed_service_live(queryFn, mutateFn);
+
   // Load feeds on mount using Effect-TS
   useEffect(() => {
-    const program = Effect.gen(function* () {
-      const fetchedFeeds = yield* RssService.fetchFeeds;
-      setFeeds(fetchedFeeds);
-      setIsLoadingFeeds(false);
-
-      // Load articles from first feed
-      if (fetchedFeeds.length > 0) {
-        setIsLoadingArticles(true);
-        const fetchedArticles = yield* RssService.fetchArticles(
-          fetchedFeeds[0].id,
-        );
-        setArticles(fetchedArticles);
-        setIsLoadingArticles(false);
-      }
-    });
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.get_rss_feeds(user_id)),
+      Effect.tap((fetchedFeeds) =>
+        Effect.sync(() => {
+          setFeeds(fetchedFeeds as any); // TODO: Map to RssFeed type
+          setIsLoadingFeeds(false);
+        })
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          console.error("Failed to load feeds:", error);
+          setIsLoadingFeeds(false);
+        })
+      )
+    );
 
     Effect.runPromise(program);
   }, []);
 
   const handleRefreshFeed = (feedId: string) => {
-    const program = Effect.gen(function* () {
-      yield* RssService.refreshFeed(feedId);
-      const fetchedArticles = yield* RssService.fetchArticles(feedId);
-      setArticles(fetchedArticles);
-    });
-
-    Effect.runPromise(program);
+    // TODO: Implement refresh logic with articles service
+    console.log("Refresh feed:", feedId);
   };
 
   const handleAddFeed = (url: string, name: string, category: string) => {
-    const program = Effect.gen(function* () {
-      const newFeed = yield* RssService.addFeed(url, name, category);
-      setFeeds((prev) => [...prev, newFeed]);
-    });
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) =>
+        service.create_rss_feed(user_id, name, category, url)
+      ),
+      Effect.tap((newFeedId) =>
+        Effect.sync(() => {
+          console.log("Feed created with ID:", newFeedId);
+          // Reload feeds
+          RssFeedService.pipe(
+            Effect.flatMap((service) => service.get_rss_feeds(user_id)),
+            Effect.tap((fetchedFeeds) =>
+              Effect.sync(() => setFeeds(fetchedFeeds as any))
+            ),
+            Effect.provide(RssFeedServiceLayer),
+            Effect.runPromise
+          );
+        })
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to add feed:", error))
+      )
+    );
 
     Effect.runPromise(program);
   };
 
   const handleRemoveFeed = (feedId: string) => {
-    const program = Effect.gen(function* () {
-      yield* RssService.deleteFeed(feedId);
-      setFeeds((prev) => prev.filter((f) => f.id !== feedId));
-    });
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.delete_rss_feed(feedId as any)),
+      Effect.tap(() =>
+        Effect.sync(() =>
+          setFeeds((prev) => prev.filter((f) => f.id !== feedId))
+        )
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to delete feed:", error))
+      )
+    );
 
     Effect.runPromise(program);
   };
 
   const handleArticleSelect = (article: RssArticle) => {
     setSelectedArticle(article);
-
-    // Mark as read using Effect-TS
-    if (!article.isRead) {
-      const program = Effect.gen(function* () {
-        yield* RssService.markAsRead(article.id);
-        setArticles((prev) =>
-          prev.map((a) => (a.id === article.id ? { ...a, isRead: true } : a)),
-        );
-      });
-
-      Effect.runPromise(program);
-    }
+    // TODO: Implement mark as read with articles service
   };
 
   const handleToggleStar = (articleId: string) => {
-    const program = Effect.gen(function* () {
-      yield* RssService.toggleStar(articleId);
-      setArticles((prev) =>
-        prev.map((a) =>
-          a.id === articleId ? { ...a, isStarred: !a.isStarred } : a,
-        ),
-      );
-
-      // Update selected article if it's the one being starred
-      if (selectedArticle && selectedArticle.id === articleId) {
-        setSelectedArticle((prev) =>
-          prev ? { ...prev, isStarred: !prev.isStarred } : null,
-        );
-      }
-    });
-
-    Effect.runPromise(program);
+    // TODO: Implement toggle star with articles service
+    console.log("Toggle star:", articleId);
   };
 
   const totalUnread = feeds.reduce((sum, feed) => sum + feed.unreadCount, 0);
