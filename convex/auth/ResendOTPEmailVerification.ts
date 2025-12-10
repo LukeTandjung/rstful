@@ -7,16 +7,15 @@ class EmailSendError extends Data.TaggedError("EmailSendError")<{
   readonly cause: unknown;
 }> {}
 
-const sendPasswordResetEmail = (email: string, token: string) =>
+const sendVerificationEmail = (email: string, token: string) =>
   Effect.tryPromise({
     try: async () => {
       const resend = new ResendAPI(process.env.AUTH_RESEND_KEY!);
-      const resetUrl = `${process.env.DOMAIN_URL}/reset-password`;
       const result = await resend.emails.send({
         from: "RSS Reader <noreply@rstful.com>",
         to: [email],
-        subject: `Reset your password in RSS Reader`,
-        text: `Your password reset code is ${token}\n\nReset your password here: ${resetUrl}`,
+        subject: `Verify your email for RSS Reader`,
+        text: `Your email verification code is ${token}`,
       });
 
       if (result.error) {
@@ -45,13 +44,13 @@ const generateVerificationToken = () =>
     return generateRandomString(random, alphabet, length);
   });
 
-export const ResendOTPPasswordReset = Resend({
-  id: "resend-otp",
+export const ResendOTPEmailVerification = Resend({
+  id: "resend-otp-verification",
   apiKey: process.env.AUTH_RESEND_KEY!,
   async generateVerificationToken() {
     return Effect.runPromise(generateVerificationToken());
   },
   async sendVerificationRequest({ identifier: email, provider, token }) {
-    await Effect.runPromise(sendPasswordResetEmail(email, token));
+    await Effect.runPromise(sendVerificationEmail(email, token));
   },
 });

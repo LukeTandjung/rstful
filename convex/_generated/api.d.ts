@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as auth_ResendOTPEmailVerification from "../auth/ResendOTPEmailVerification.js";
+import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordReset.js";
 import type * as http from "../http.js";
 
 import type {
@@ -19,6 +21,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "auth/ResendOTPEmailVerification": typeof auth_ResendOTPEmailVerification;
+  "auth/ResendOTPPasswordReset": typeof auth_ResendOTPPasswordReset;
   http: typeof http;
 }>;
 
