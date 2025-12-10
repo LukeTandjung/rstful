@@ -29,6 +29,7 @@ export default defineSchema({
 
   rss_feed: defineTable({
     user_id: v.id("users"),
+    name: v.string(),
     category: v.string(),
     url: v.string(),
     status: v.string(),

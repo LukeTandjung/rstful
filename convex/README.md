@@ -5,295 +5,23 @@ See https://docs.convex.dev/functions for more.
 
 ## Using Effect-TS with Convex
 
-This guide shows how to use Effect-TS patterns both inside Convex functions (backend) and when consuming them in React (frontend).
+This guide shows how to use Effect-TS patterns when consuming Convex functions in React (frontend).
 
----
+## Why Not Use Effect-TS in Convex Backend?
 
-## Backend: Effect-TS Inside Convex Functions
+**Convex's tight coupling of backend + database is incompatible with Effect-TS's philosophy:**
 
-### Basic Query with Effect
+- **Convex**: Backend and database are unified. `ctx.db` is provided by Convex's runtime and cannot be easily mocked or swapped
+- **Effect-TS**: Designed for dependency injection and testability through Layers/Services
+- **The mismatch**: Effect's main advantage (mocking services for testing) doesn't work well with Convex's `ctx` magic
 
-```ts
-// convex/myFunctions.ts
-import { query } from "./_generated/server";
-import { v } from "convex/values";
-import { Effect, pipe } from "effect";
-
-export const myQueryFunction = query({
-  args: {
-    first: v.number(),
-    second: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Wrap Convex operations in Effect for composability
-    const program = pipe(
-      Effect.promise(() => ctx.db.query("tablename").collect()),
-      Effect.tap((documents) =>
-        Effect.sync(() => console.log(args.first, args.second))
-      ),
-      Effect.map((documents) => {
-        // Transform, filter, or process documents here
-        return documents;
-      })
-    );
-
-    // Run the Effect program and return the result
-    return Effect.runPromise(program);
-  },
-});
-```
-
-### Mutation with Proper Error Handling
-
-```ts
-// convex/myFunctions.ts
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
-import { Effect, Data, pipe } from "effect";
-
-// Define custom error types using Data.TaggedError
-class MessageInsertError extends Data.TaggedError("MessageInsertError")<{
-  readonly message: string;
-}> {}
-
-class DocumentNotFoundError extends Data.TaggedError("DocumentNotFoundError")<{
-  readonly id: string;
-}> {}
-
-export const myMutationFunction = mutation({
-  args: {
-    first: v.string(),
-    second: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const program = pipe(
-      Effect.succeed({ body: args.first, author: args.second }),
-      Effect.flatMap((message) =>
-        Effect.tryPromise({
-          try: () => ctx.db.insert("messages", message),
-          catch: (error) => new MessageInsertError({ message: String(error) }),
-        })
-      ),
-      Effect.flatMap((id) =>
-        pipe(
-          Effect.promise(() => ctx.db.get(id)),
-          Effect.flatMap((doc) =>
-            doc
-              ? Effect.succeed(doc)
-              : Effect.fail(new DocumentNotFoundError({ id: id.toString() }))
-          )
-        )
-      ),
-      Effect.catchAll((error) =>
-        Effect.succeed({ error: error._tag })
-      )
-    );
-
-    return Effect.runPromise(program);
-  },
-});
-```
-
-### Services & Layers with Pipe Syntax
-
-```ts
-// convex/services/validation.ts
-import { Effect, Context, Layer, Data, pipe } from "effect";
-
-// Define custom error using Data.TaggedError
-export class ValidationError extends Data.TaggedError("ValidationError")<{
-  readonly reason: string;
-}> {}
-
-// Define service interface
-export class ValidationService extends Context.Tag("ValidationService")<
-  ValidationService,
-  {
-    readonly validateMessage: (body: string) => Effect.Effect<string, ValidationError>;
-  }
->() {}
-
-// Create Layer for service implementation
-export const ValidationServiceLive = Layer.succeed(ValidationService, {
-  validateMessage: (body: string) =>
-    pipe(
-      Effect.sync(() => body.trim()),
-      Effect.flatMap((trimmed) =>
-        trimmed.length === 0 || trimmed.length > 500
-          ? Effect.fail(new ValidationError({ reason: "Message must be 1-500 characters" }))
-          : Effect.succeed(trimmed)
-      )
-    ),
-});
-
-// convex/myFunctions.ts
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
-import { Effect, pipe } from "effect";
-import { ValidationService, ValidationServiceLive } from "./services/validation";
-
-export const createMessage = mutation({
-  args: {
-    body: v.string(),
-    author: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const program = pipe(
-      ValidationService,
-      Effect.flatMap((validation) => validation.validateMessage(args.body)),
-      Effect.flatMap((validBody) =>
-        Effect.promise(() =>
-          ctx.db.insert("messages", { body: validBody, author: args.author })
-        )
-      ),
-      Effect.map((id) => ({ id })),
-      Effect.provide(ValidationServiceLive),
-      Effect.catchTag("ValidationError", (error) =>
-        Effect.fail(new Error(`Validation failed: ${error.reason}`))
-      )
-    );
-
-    return Effect.runPromise(program);
-  },
-});
-```
-
-### Composing Multiple Services
-
-```ts
-// convex/services/config.ts
-import { Context, Layer } from "effect";
-
-export class ConfigService extends Context.Tag("ConfigService")<
-  ConfigService,
-  {
-    readonly maxMessageLength: number;
-    readonly minMessageLength: number;
-  }
->() {}
-
-export const ConfigServiceLive = Layer.succeed(ConfigService, {
-  maxMessageLength: 500,
-  minMessageLength: 1,
-});
-
-// convex/services/validation.ts - Updated to depend on ConfigService
-import { Effect, Context, Layer, Data, pipe } from "effect";
-import { ConfigService } from "./config";
-
-export class ValidationError extends Data.TaggedError("ValidationError")<{
-  readonly reason: string;
-}> {}
-
-export class ValidationService extends Context.Tag("ValidationService")<
-  ValidationService,
-  {
-    readonly validateMessage: (body: string) => Effect.Effect<string, ValidationError>;
-  }
->() {}
-
-// Layer with dependencies - use Effect.gen when closing over dependencies
-export const ValidationServiceLive = Layer.effect(
-  ValidationService,
-  Effect.gen(function* () {
-    // Access config during construction - justifies Effect.gen
-    const config = yield* ConfigService;
-
-    // Return service implementation that closes over config
-    return {
-      validateMessage: (body: string) =>
-        pipe(
-          Effect.sync(() => body.trim()),
-          Effect.flatMap((trimmed) =>
-            trimmed.length < config.minMessageLength ||
-            trimmed.length > config.maxMessageLength
-              ? Effect.fail(
-                  new ValidationError({
-                    reason: `Message must be ${config.minMessageLength}-${config.maxMessageLength} characters`,
-                  })
-                )
-              : Effect.succeed(trimmed)
-          )
-        ),
-    };
-  })
-);
-
-// convex/myFunctions.ts - Composing multiple layers
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
-import { Effect, Layer, pipe } from "effect";
-import { ValidationService, ValidationServiceLive } from "./services/validation";
-import { ConfigServiceLive } from "./services/config";
-
-export const createMessage = mutation({
-  args: {
-    body: v.string(),
-    author: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const program = pipe(
-      ValidationService,
-      Effect.flatMap((validation) => validation.validateMessage(args.body)),
-      Effect.flatMap((validBody) =>
-        Effect.promise(() =>
-          ctx.db.insert("messages", { body: validBody, author: args.author })
-        )
-      ),
-      Effect.map((id) => ({ id }))
-    );
-
-    // Compose layers: ValidationService depends on ConfigService
-    const AppLayer = pipe(
-      ValidationServiceLive,
-      Layer.provide(ConfigServiceLive)
-    );
-
-    return Effect.runPromise(
-      pipe(
-        program,
-        Effect.provide(AppLayer),
-        Effect.catchAll((error) =>
-          Effect.succeed({ error: String(error) })
-        )
-      )
-    );
-  },
-});
-```
-
-### When to Use Effect.gen vs Pipe
-
-**Use pipe (default):**
-- Linear transformations where each step depends only on the previous value
-- Clear left-to-right data flow
-- You're transforming a single value through multiple steps
-
-**Use Effect.gen (rare exceptions):**
-- Building service implementations that close over dependencies (like ValidationServiceLive above)
-- Need to reference multiple earlier values from different steps
-- Complex branching logic where intermediate named values improve clarity
-
-**Example justifying Effect.gen:**
-```ts
-// Needs Effect.gen - references validBody AND user in final return
-const program = Effect.gen(function* () {
-  const user = yield* getUser(userId);
-  const validBody = yield* validateMessage(body);
-  const id = yield* insertMessage(validBody, user.id);
-
-  // Both user and validBody needed here
-  return { id, body: validBody, author: user.name, email: user.email };
-});
-
-// vs with pipe - would need nested flatMaps and lose clarity
-```
+**Recommendation:** Use Convex's native patterns for queries/mutations. Use Effect-TS in the frontend and for complex business logic outside of Convex.
 
 ---
 
 ## Frontend: Consuming Convex with Effect-TS in React
 
-### Option 1: Effect Service Layer (Recommended)
+### Effect Service Layer (Recommended)
 
 Create a unified database service that wraps Convex operations:
 
@@ -427,24 +155,24 @@ export function MessageForm() {
 
 ## Recommendation
 
-**Backend (Convex):**
-- Use Effect for complex business logic, validation, and error handling
-- Prefer **pipe syntax** for linear transformations
-- Use Effect.gen only when closing over dependencies or referencing multiple earlier values
-- Create services with Context.Tag and Layers for reusable logic
-
-**Frontend (React):**
-- Create a **unified DatabaseService Layer** wrapping all Convex operations
+**Use Effect-TS in the Frontend:**
+- Create a **unified DatabaseService Layer** wrapping Convex operations
 - Use pipe syntax for composing database calls with business logic
 - Handle errors with Effect.catchTag for specific error types
 - Benefits: type-safe operations, centralized error handling, easy testing, composability
 
-**Key Patterns:**
+**Use Convex Natively in the Backend:**
+- Write queries/mutations using Convex's standard patterns
+- Use `ctx.db` directly without wrapping in Effect
+- Test using Convex's built-in test environment
+- Keep backend logic simple and focused
+
+**Key Effect-TS Patterns for Frontend:**
 - Use `Data.TaggedError` for error definitions (not plain classes)
 - Use `Layer.succeed` for simple services, `Layer.effect` for services with dependencies
 - Use `Effect.provide` to supply Layer implementations
-- Compose layers with `Layer.provide` (not `Layer.merge` unless parallel)
-- Default to pipe, use Effect.gen only when justified
+- Compose layers with `Layer.provide`
+- Default to pipe syntax, use Effect.gen only when justified (multiple value references)
 
 ---
 

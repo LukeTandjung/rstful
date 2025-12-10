@@ -60,19 +60,19 @@ export const AuthServiceLive = Layer.effect(
           Effect.flatMap((formData) =>
             Effect.tryPromise({
               try: () => convexAuth.use_actions.signIn("password", formData),
-              catch: () => new AuthenticationError(),
+              catch: () => new AuthenticationError({ message: "Login failed. Please check your credentials." }),
             }),
           ),
         ),
 
       logout: Effect.tryPromise({
         try: () => convexAuth.use_actions.signOut(),
-        catch: () => new AuthenticationError(),
+        catch: () => new AuthenticationError({ message: "Logout failed." }),
       }),
 
       verify_email: (email: string, code: string) =>
         Effect.try(() => Email(email)).pipe(
-          Effect.mapError(() => new ValidationError()),
+          Effect.mapError(() => new ValidationError({ message: "Invalid email format" })),
           Effect.flatMap((validEmail) =>
             Effect.sync(() => {
               const formData = new FormData();
@@ -85,14 +85,14 @@ export const AuthServiceLive = Layer.effect(
           Effect.flatMap((formData) =>
             Effect.tryPromise({
               try: () => convexAuth.use_actions.signIn("password", formData),
-              catch: () => new AuthenticationError(),
+              catch: () => new AuthenticationError({ message: "Email verification failed." }),
             })
           )
         ),
 
       request_password_reset: (email: string) =>
         Effect.try(() => Email(email)).pipe(
-          Effect.mapError(() => new ValidationError()),
+          Effect.mapError(() => new ValidationError({ message: "Invalid email format" })),
           Effect.flatMap((validEmail) =>
             Effect.sync(() => {
               const formData = new FormData();
@@ -104,7 +104,7 @@ export const AuthServiceLive = Layer.effect(
           Effect.flatMap((formData) =>
             Effect.tryPromise({
               try: () => convexAuth.use_actions.signIn("password", formData),
-              catch: () => new AuthenticationError(),
+              catch: () => new AuthenticationError({ message: "Password reset request failed." }),
             })
           )
         ),
@@ -114,7 +114,7 @@ export const AuthServiceLive = Layer.effect(
           Effect.try(() => Email(email)),
           Effect.try(() => Password(new_password))
         ]).pipe(
-          Effect.mapError(() => new ValidationError()),
+          Effect.mapError(() => new ValidationError({ message: "Invalid email or password format" })),
           Effect.flatMap(([validEmail, validPassword]) =>
             Effect.sync(() => {
               const formData = new FormData();
@@ -128,7 +128,7 @@ export const AuthServiceLive = Layer.effect(
           Effect.flatMap((formData) =>
             Effect.tryPromise({
               try: () => convexAuth.use_actions.signIn("password", formData),
-              catch: () => new AuthenticationError(),
+              catch: () => new AuthenticationError({ message: "Password reset failed." }),
             })
           )
         ),
