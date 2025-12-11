@@ -34,15 +34,38 @@ export default defineSchema({
     url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
+    unread_count: v.number(),
+    failure_count: v.optional(v.number()),
   }).index("by_user_id", ["user_id"]),
 
   saved_content: defineTable({
     user_id: v.id("users"),
-    content: v.string(),
     rss_feed_id: v.optional(v.id("rss_feed")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    content: v.string(),
+    link: v.string(),
+    pub_date: v.optional(v.int64()),
+    is_read: v.boolean(),
+    author: v.optional(v.string()),
   })
     .index("by_user_id", ["user_id"])
     .index("by_rss_feed_id", ["rss_feed_id"]),
+
+  cached_content: defineTable({
+    user_id: v.id("users"),
+    rss_feed_id: v.optional(v.id("rss_feed")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    content: v.string(),
+    link: v.string(),
+    pub_date: v.optional(v.int64()),
+    is_read: v.boolean(),
+    author: v.optional(v.string()),
+  })
+    .index("by_user_id", ["user_id"])
+    .index("by_rss_feed_id", ["rss_feed_id"])
+    .index("by_link", ["link"]),
 
   group_chat: defineTable({
     name: v.string(),
