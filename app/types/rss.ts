@@ -1,11 +1,15 @@
+import type { Id } from "convex/_generated/dataModel";
+
 export interface RssFeed {
-  id: string;
+  _id: Id<"rss_feed">;
+  _creationTime: number;
+  user_id: Id<"users">;
   name: string;
   url: string;
   category: string;
-  lastFetched?: Date;
-  unreadCount: number;
-  status: "active" | "error" | "loading";
+  last_fetched: bigint;
+  unread_count: number;
+  status: string;
 }
 
 export interface RssArticle {

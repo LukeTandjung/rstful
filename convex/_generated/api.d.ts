@@ -11,7 +11,11 @@
 import type * as auth from "../auth.js";
 import type * as auth_ResendOTPEmailVerification from "../auth/ResendOTPEmailVerification.js";
 import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordReset.js";
+import type * as cached_content from "../cached_content.js";
 import type * as http from "../http.js";
+import type * as rss_feed from "../rss_feed.js";
+import type * as rss_fetcher from "../rss_fetcher.js";
+import type * as saved_content from "../saved_content.js";
 
 import type {
   ApiFromModules,
@@ -23,7 +27,11 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "auth/ResendOTPEmailVerification": typeof auth_ResendOTPEmailVerification;
   "auth/ResendOTPPasswordReset": typeof auth_ResendOTPPasswordReset;
+  cached_content: typeof cached_content;
   http: typeof http;
+  rss_feed: typeof rss_feed;
+  rss_fetcher: typeof rss_fetcher;
+  saved_content: typeof saved_content;
 }>;
 
 /**
