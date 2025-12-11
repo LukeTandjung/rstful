@@ -1,9 +1,7 @@
 import { Effect, Layer, Match } from "effect";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { RssFeedService } from "./rss_feed.service";
-import { RssFeedQueryError, RssFeedMutationError, RssFeedValidationError } from "./rss_feed.errors";
+import { RssFeedMutationError, RssFeedValidationError } from "./rss_feed.errors";
 
 // Validation using Match for pattern matching
 const validate_feed_inputs = (name: string, url: string, category: string) =>
@@ -23,33 +21,29 @@ const validate_feed_inputs = (name: string, url: string, category: string) =>
     Match.orElse((validated) => Effect.succeed(validated))
   );
 
-// Create the service Layer
+// Create the service Layer for mutations and actions
 export const make_rss_feed_service_live = (
-  queryFn: typeof useQuery,
-  mutateFn: typeof useMutation
+  postRssFeedMutation: (args: { user_id: Id<"users">, name: string, category: string, url: string, status: string, last_fetched: bigint, unread_count?: number, failure_count?: number }) => Promise<Id<"rss_feed">>,
+  putRssFeedMutation: (args: { rss_feed_id: Id<"rss_feed">, name: string, category: string, url: string }) => Promise<Id<"rss_feed">>,
+  deleteRssFeedMutation: (args: { rss_feed_id: Id<"rss_feed"> }) => Promise<Id<"rss_feed">>,
+  fetchUserFeedsAction: (args: { user_id: Id<"users"> }) => Promise<{ success: boolean; total: number; successful: number; failed: number; message?: string }>,
+  refreshFeedAction: (args: { feed_id: Id<"rss_feed"> }) => Promise<{ success: boolean }>
 ) =>
   Layer.succeed(RssFeedService, {
-    get_rss_feeds: (user_id: Id<"users">) =>
-      Effect.tryPromise({
-        try: () => queryFn(api.rss_feed.api.get_rss_feed, { user_id }),
-        catch: (error) => new RssFeedQueryError({ message: String(error) }),
-      }),
-
     create_rss_feed: (user_id: Id<"users">, name: string, category: string, url: string) =>
       validate_feed_inputs(name, url, category).pipe(
         Effect.flatMap(({ name, url, category }) =>
           Effect.tryPromise({
-            try: () => {
-              const mutation = mutateFn(api.rss_feed.api.post_rss_feed);
-              return mutation({
-                user_id,
-                name,
-                category,
-                url,
-                status: "active",
-                last_fetched: BigInt(Date.now()),
-              });
-            },
+            try: () => postRssFeedMutation({
+              user_id,
+              name,
+              category,
+              url,
+              status: "active",
+              last_fetched: BigInt(Date.now()),
+              unread_count: 0,
+              failure_count: 0,
+            }),
             catch: (error) => new RssFeedMutationError({ message: String(error) }),
           })
         )
@@ -59,10 +53,7 @@ export const make_rss_feed_service_live = (
       validate_feed_inputs(name, url, category).pipe(
         Effect.flatMap(({ name, url, category }) =>
           Effect.tryPromise({
-            try: () => {
-              const mutation = mutateFn(api.rss_feed.api.put_rss_feed);
-              return mutation({ rss_feed_id, name, category, url });
-            },
+            try: () => putRssFeedMutation({ rss_feed_id, name, category, url }),
             catch: (error) => new RssFeedMutationError({ message: String(error) }),
           })
         )
@@ -70,10 +61,19 @@ export const make_rss_feed_service_live = (
 
     delete_rss_feed: (rss_feed_id: Id<"rss_feed">) =>
       Effect.tryPromise({
-        try: () => {
-          const mutation = mutateFn(api.rss_feed.api.delete_rss_feed);
-          return mutation({ rss_feed_id });
-        },
+        try: () => deleteRssFeedMutation({ rss_feed_id }),
+        catch: (error) => new RssFeedMutationError({ message: String(error) }),
+      }),
+
+    fetch_feeds: (user_id: Id<"users">) =>
+      Effect.tryPromise({
+        try: () => fetchUserFeedsAction({ user_id }),
+        catch: (error) => new RssFeedMutationError({ message: String(error) }),
+      }),
+
+    refresh_feed: (feed_id: Id<"rss_feed">) =>
+      Effect.tryPromise({
+        try: () => refreshFeedAction({ feed_id }),
         catch: (error) => new RssFeedMutationError({ message: String(error) }),
       }),
   });

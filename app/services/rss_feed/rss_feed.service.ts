@@ -1,6 +1,6 @@
 import { Effect, Context } from "effect";
 import type { Id } from "convex/_generated/dataModel";
-import { RssFeedQueryError, RssFeedMutationError, RssFeedValidationError } from "./rss_feed.errors";
+import { RssFeedMutationError, RssFeedValidationError } from "./rss_feed.errors";
 
 export interface RssFeedDoc {
   _id: Id<"rss_feed">;
@@ -11,15 +11,21 @@ export interface RssFeedDoc {
   url: string;
   status: string;
   last_fetched: bigint;
+  unread_count: number;
+  failure_count: number;
+}
+
+export interface FetchFeedsResult {
+  success: boolean;
+  total: number;
+  successful: number;
+  failed: number;
+  message?: string;
 }
 
 export class RssFeedService extends Context.Tag("RssFeedService")<
   RssFeedService,
   {
-    readonly get_rss_feeds: (
-      user_id: Id<"users">
-    ) => Effect.Effect<Array<RssFeedDoc>, RssFeedQueryError>;
-
     readonly create_rss_feed: (
       user_id: Id<"users">,
       name: string,
@@ -37,5 +43,13 @@ export class RssFeedService extends Context.Tag("RssFeedService")<
     readonly delete_rss_feed: (
       rss_feed_id: Id<"rss_feed">
     ) => Effect.Effect<Id<"rss_feed">, RssFeedMutationError>;
+
+    readonly fetch_feeds: (
+      user_id: Id<"users">
+    ) => Effect.Effect<FetchFeedsResult, RssFeedMutationError>;
+
+    readonly refresh_feed: (
+      feed_id: Id<"rss_feed">
+    ) => Effect.Effect<{ success: boolean }, RssFeedMutationError>;
   }
 >() {}
