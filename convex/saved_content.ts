@@ -15,14 +15,25 @@ export const get_saved_content = query({
 export const post_saved_content = mutation({
   args: {
     user_id: v.id("users"),
+    title: v.string(),
     content: v.string(),
+    link: v.string(),
+    description: v.optional(v.string()),
+    author: v.optional(v.string()),
+    pub_date: v.optional(v.int64()),
     rss_feed_id: v.optional(v.id("rss_feed")),
   },
   handler: async (ctx, args) => {
     const new_saved_content_id = await ctx.db.insert("saved_content", {
       user_id: args.user_id,
+      title: args.title,
       content: args.content,
+      link: args.link,
+      ...(args.description && { description: args.description }),
+      ...(args.author && { author: args.author }),
+      ...(args.pub_date && { pub_date: args.pub_date }),
       ...(args.rss_feed_id && { rss_feed_id: args.rss_feed_id }),
+      is_read: true, // Saved content is considered read
     });
     return new_saved_content_id;
   },
