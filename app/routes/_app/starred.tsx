@@ -1,17 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Route } from "./+types/starred";
-import type { RssArticle } from "types";
-import { Separator } from "@base-ui-components/react/separator";
+import type { Doc } from "convex/_generated/dataModel";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { StarIcon } from "@heroicons/react/16/solid";
-import { Effect } from "effect";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
 import {
   SectionCard,
-  MenuBar,
   ArticleListItem,
   ArticleReader,
 } from "components";
-import { RssService } from "services/rss.service";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -24,59 +22,43 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Starred() {
-  const [starredArticles, setStarredArticles] = useState<RssArticle[]>([]);
-  const [selectedArticle, setSelectedArticle] = useState<RssArticle | null>(
-    null,
+  const viewer = useQuery(api.auth.currentUser);
+  const user_id = viewer?._id;
+
+  const [selectedArticle, setSelectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
+
+  // Query saved articles from Convex
+  const savedArticles = useQuery(
+    api.saved_content.get_saved_content,
+    user_id ? { user_id } : "skip"
   );
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Load starred articles on mount
-  useEffect(() => {
-    const program = Effect.gen(function* () {
-      const articles = yield* RssService.fetchStarredArticles;
-      setStarredArticles(articles);
-      setIsLoading(false);
-    });
+  const deleteSavedContent = useMutation(api.saved_content.delete_saved_content);
 
-    Effect.runPromise(program);
-  }, []);
+  const starredArticles = savedArticles ?? [];
+  const isLoading = savedArticles === undefined;
 
-  const handleArticleSelect = (article: RssArticle) => {
+  const handleArticleSelect = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
     setSelectedArticle(article);
-
-    // Mark as read
-    if (!article.isRead) {
-      const program = Effect.gen(function* () {
-        yield* RssService.markAsRead(article.id);
-        setStarredArticles((prev) =>
-          prev.map((a) => (a.id === article.id ? { ...a, isRead: true } : a)),
-        );
-      });
-
-      Effect.runPromise(program);
-    }
   };
 
   const handleToggleStar = (articleId: string) => {
-    const program = Effect.gen(function* () {
-      yield* RssService.toggleStar(articleId);
-      // Remove from starred list when unstarred
-      setStarredArticles((prev) => prev.filter((a) => a.id !== articleId));
-
-      // Clear selected article if it's the one being unstarred
-      if (selectedArticle && selectedArticle.id === articleId) {
-        setSelectedArticle(null);
-      }
-    });
-
-    Effect.runPromise(program);
+    // On starred page, toggling always removes
+    deleteSavedContent({ saved_content_id: articleId as Doc<"saved_content">["_id"] })
+      .then(() => {
+        // Clear selected article if it's the one being unstarred
+        if (selectedArticle && selectedArticle._id === articleId) {
+          setSelectedArticle(null);
+        }
+      })
+      .catch((error) => console.error("Failed to remove article:", error));
   };
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
       {/* Starred Articles List */}
       <SectionCard
-        icon={<StarIcon className="size-7 text-yellow-500" />}
+        icon={<StarIcon className="size-7 text-text" />}
         title="Starred Articles"
         description={`${starredArticles.length} starred ${starredArticles.length === 1 ? "article" : "articles"}`}
         className="md:w-1/2 md:min-h-0"
@@ -101,13 +83,14 @@ export default function Starred() {
           <ScrollArea.Root className="flex grow min-h-0 w-full">
             <ScrollArea.Viewport className="flex grow min-h-0">
               <div className="flex flex-col gap-3 grow min-h-0">
-                {starredArticles.map((article) => (
+                {starredArticles.map((article: Doc<"saved_content">) => (
                   <ArticleListItem
-                    key={article.id}
+                    key={article._id}
                     article={article}
                     onSelect={handleArticleSelect}
                     onToggleStar={handleToggleStar}
-                    isSelected={selectedArticle?.id === article.id}
+                    isSelected={selectedArticle?._id === article._id}
+                    isStarred={true}
                   />
                 ))}
               </div>
@@ -118,7 +101,7 @@ export default function Starred() {
 
       {/* Article Reader Section */}
       <SectionCard
-        icon={<StarIcon className="size-7 text-yellow-500" />}
+        icon={<StarIcon className="size-7 text-text" />}
         title="Reader"
         description={
           selectedArticle ? selectedArticle.title : "No article selected"
