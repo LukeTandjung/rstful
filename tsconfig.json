@@ -15,6 +15,7 @@
     "rootDirs": [".", "./.react-router/types"],
     "baseUrl": ".",
     "paths": {
+      "convex/*": ["./convex/*"],
       "*": ["./app/*"],
       "@rstful/shared": ["./packages/shared/src"]
     },

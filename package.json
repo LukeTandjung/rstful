@@ -6,7 +6,9 @@
     "dev": "react-router dev",
     "build": "react-router build",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@auth/core": "0.37.0",
@@ -19,6 +21,7 @@
     "@react-router/serve": "7.10.1",
     "convex": "^1.30.0",
     "effect": "^3.19.9",
+    "fast-xml-parser": "^5.3.2",
     "isbot": "^5.1.31",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -32,9 +35,12 @@
     "@types/node": "^22",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-istanbul": "^4.0.15",
+    "@vitest/coverage-v8": "^4.0.15",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.15"
   }
 }
