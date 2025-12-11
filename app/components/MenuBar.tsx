@@ -3,11 +3,20 @@ import { NavigationMenu } from "@base-ui-components/react/navigation-menu";
 import { Separator } from "@base-ui-components/react/separator";
 import { Link, useLocation } from "react-router";
 
-export function MenuBar() {
+interface MenuBarProps {
+  userName?: string | undefined;
+}
+
+export function MenuBar({ userName }: MenuBarProps) {
   const location = useLocation();
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "??";
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -18,6 +27,9 @@ export function MenuBar() {
           alt="RSS Reader"
           className="size-full"
         />
+        <Avatar.Fallback className="size-full flex items-center justify-center bg-background-alt text-text font-medium text-lg rounded-full">
+          {getInitials(userName)}
+        </Avatar.Fallback>
       </Avatar.Root>
 
       <div className="flex items-stretch">

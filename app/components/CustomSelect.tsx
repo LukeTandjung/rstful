@@ -2,7 +2,7 @@ import { Select } from "@base-ui-components/react/select";
 import { CaretSortIcon } from "@radix-ui/react-icons";
 
 interface CustomSelectProps {
-  name?: string;
+  name: string;
   label?: string;
   value?: string;
   defaultValue?: string;
@@ -28,6 +28,7 @@ export function CustomSelect({
         </label>
       )}
       <Select.Root
+        name={name}
         value={value}
         defaultValue={defaultValue}
         onValueChange={(newValue) => {
@@ -36,8 +37,8 @@ export function CustomSelect({
           }
         }}
       >
-        <Select.Trigger className="bg-background-select flex gap-3 items-center px-3 py-2 rounded w-full">
-          <Select.Value className="font-normal text-base leading-4 text-text flex-1 text-left" />
+        <Select.Trigger className="bg-background-select flex gap-2 items-center px-3 py-2 rounded-lg w-full">
+          <Select.Value className="font-normal text-base leading-7 text-text flex-1 text-left" />
           <Select.Icon className="flex items-center">
             <CaretSortIcon className="w-4 h-4 text-text" />
           </Select.Icon>

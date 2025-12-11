@@ -1,9 +1,10 @@
 import { AlertDialog } from "@base-ui-components/react/alert-dialog";
+import type { Id } from "convex/_generated/dataModel";
 
 interface RemoveFeedDialogProps {
   feedName: string;
-  feedId: string;
-  onRemove?: ((feedId: string) => void) | undefined;
+  feedId: Id<"rss_feed">;
+  onRemove: (feedId: Id<"rss_feed">) => void;
 }
 
 export function RemoveFeedDialog({
@@ -32,7 +33,7 @@ export function RemoveFeedDialog({
           <div className="flex gap-3.5 w-full mt-4">
             <AlertDialog.Close
               className="bg-error px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text"
-              onClick={() => onRemove?.(feedId)}
+              onClick={() => onRemove(feedId)}
             >
               Remove
             </AlertDialog.Close>

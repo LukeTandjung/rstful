@@ -3,18 +3,21 @@ import { Collapsible } from "@base-ui-components/react/collapsible";
 import { Button } from "@base-ui-components/react/button";
 import { ChevronRightIcon, ChevronDownIcon } from "@heroicons/react/16/solid";
 import type { RssFeed } from "types";
+import type { Id } from "convex/_generated/dataModel";
 import { EditFeedDialog } from "./EditFeedDialog";
 import { RemoveFeedDialog } from "./RemoveFeedDialog";
 
 interface FeedCollapsibleItemProps {
   feed: RssFeed;
-  onRefresh?: (feedId: string) => void;
-  onRemove?: (feedId: string) => void;
+  onRefresh: (feedId: Id<"rss_feed">) => void;
+  onEdit: (feedId: Id<"rss_feed">, name: string, category: string, url: string) => void;
+  onRemove: (feedId: Id<"rss_feed">) => void;
 }
 
 export function FeedCollapsibleItem({
   feed,
   onRefresh,
+  onEdit,
   onRemove,
 }: FeedCollapsibleItemProps) {
   const [open, setOpen] = useState(false);
@@ -28,9 +31,9 @@ export function FeedCollapsibleItem({
       <Collapsible.Trigger className="flex items-center justify-between w-full font-medium text-lg leading-7 text-text">
         <div className="flex items-center gap-2.5">
           <span>{feed.name}</span>
-          {feed.unreadCount > 0 && (
+          {feed.unread_count > 0 && (
             <span className="bg-border-focus px-2 py-0.5 rounded text-sm">
-              {feed.unreadCount}
+              {feed.unread_count}
             </span>
           )}
         </div>
@@ -67,9 +70,9 @@ export function FeedCollapsibleItem({
             Category: {feed.category}
           </div>
 
-          {feed.lastFetched && (
+          {feed.last_fetched && (
             <div className="flex gap-2.5 items-center font-normal text-base leading-7 text-text-alt">
-              Last fetched: {new Date(feed.lastFetched).toLocaleString()}
+              Last fetched: {new Date(Number(feed.last_fetched)).toLocaleString()}
             </div>
           )}
         </div>
@@ -77,15 +80,15 @@ export function FeedCollapsibleItem({
         {/* Button Group */}
         <div className="flex gap-7 w-full mt-5">
           <Button
-            onClick={() => onRefresh?.(feed.id)}
+            onClick={() => onRefresh(feed._id)}
             className="bg-background-select px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text"
           >
             Refresh
           </Button>
-          <EditFeedDialog feed={feed} />
+          <EditFeedDialog feed={feed} onEdit={onEdit} />
           <RemoveFeedDialog
             feedName={feed.name}
-            feedId={feed.id}
+            feedId={feed._id}
             onRemove={onRemove}
           />
         </div>

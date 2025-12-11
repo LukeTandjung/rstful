@@ -1,10 +1,9 @@
-import { StarIcon as StarIconSolid } from "@heroicons/react/16/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import type { RssArticle } from "types";
+import type { Doc } from "convex/_generated/dataModel";
 
 interface ArticleReaderProps {
-  article: RssArticle | null;
+  article: Doc<"cached_content"> | Doc<"saved_content"> | null;
   onToggleStar?: (articleId: string) => void;
 }
 
@@ -29,21 +28,21 @@ export function ArticleReader({ article, onToggleStar }: ArticleReaderProps) {
           </h1>
 
           <button
-            onClick={() => onToggleStar?.(article.id)}
+            onClick={() => onToggleStar?.(article._id)}
             className="shrink-0 p-2 hover:bg-background-select rounded"
           >
-            {article.isStarred ? (
-              <StarIconSolid className="size-6 text-urgent" />
-            ) : (
-              <StarIconOutline className="size-6 text-text-alt" />
-            )}
+            <StarIconOutline className="size-6 text-text-alt" />
           </button>
         </div>
 
         <div className="flex items-center gap-4 font-normal text-base leading-6 text-text-alt">
-          <span>{article.feedName}</span>
-          <span>•</span>
-          <span>{new Date(article.pubDate).toLocaleDateString()}</span>
+          <span>
+            {new Date(
+              article.pub_date
+                ? Number(article.pub_date)
+                : article._creationTime
+            ).toLocaleDateString()}
+          </span>
           {article.author && (
             <>
               <span>•</span>
