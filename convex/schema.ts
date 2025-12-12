@@ -84,7 +84,67 @@ export default defineSchema({
     sender_id: v.id("users"),
     content: v.string(),
     created_at: v.int64(),
+    role: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   })
     .index("by_group_chat_id", ["group_chat_id"])
     .index("by_sender_id", ["sender_id"]),
+
+  chemistry_embedding: defineTable({
+    user_id: v.id("users"),
+    created_at: v.int64(),
+    updated_at: v.int64(),
+    criteria: v.object({
+      epistemic_architecture: v.object({
+        primary_mode: v.string(),
+        evidence_hierarchy: v.array(v.string()),
+        certainty_stance: v.string(),
+        knowledge_model: v.string(),
+      }),
+      value_hierarchy: v.object({
+        primary_good: v.string(),
+        non_negotiables: v.array(v.string()),
+        typical_tradeoffs: v.string(),
+        moral_foundations: v.object({
+          care_vs_harm: v.number(),
+          fairness_vs_cheating: v.number(),
+          loyalty_vs_betrayal: v.number(),
+          authority_vs_subversion: v.number(),
+          sanctity_vs_degradation: v.number(),
+          liberty_vs_oppression: v.number(),
+        }),
+      }),
+      cognitive_fingerprint: v.object({
+        reasoning_pattern: v.string(),
+        abstraction_level: v.string(),
+        recurrent_metaphors: v.array(v.string()),
+        mental_toolkit: v.array(v.string()),
+      }),
+      temporal_orientation: v.object({
+        past_weight: v.number(),
+        present_weight: v.number(),
+        future_weight: v.number(),
+        change_velocity: v.string(),
+      }),
+      aspirational_vector: v.object({
+        target_state: v.string(),
+        utopia_distance: v.number(),
+        action_orientation: v.string(),
+      }),
+      affective_signature: v.object({
+        emotional_register: v.string(),
+        energy_level: v.string(),
+        conflict_stance: v.string(),
+      }),
+      communication_geometry: v.object({
+        density: v.string(),
+        formality: v.string(),
+        audience_assumption: v.string(),
+      }),
+      edge_or_center: v.object({
+        contrarian_score: v.number(),
+        orthodoxy_alignment: v.string(),
+        risk_tolerance: v.string(),
+      }),
+    }),
+  }).index("by_user_id", ["user_id"]),
 });
