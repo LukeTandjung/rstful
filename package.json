@@ -20,6 +20,8 @@
     "@react-router/node": "7.10.1",
     "@react-router/serve": "7.10.1",
     "convex": "^1.30.0",
+    "dedalus-labs": "^0.1.0-alpha.8",
+    "dedalus-react": "^0.1.1",
     "effect": "^3.19.9",
     "fast-xml-parser": "^5.3.2",
     "isbot": "^5.1.31",
