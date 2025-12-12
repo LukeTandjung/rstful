@@ -1,24 +1,23 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-export const get_or_create_ai_chat = mutation({
-  args: { user_id: v.id("users") },
+const chatModeValidator = v.union(
+  v.literal("regular"),
+  v.literal("x_search"),
+  v.literal("user")
+);
+
+export const create_conversation = mutation({
+  args: {
+    user_id: v.id("users"),
+    name: v.string(),
+    mode: chatModeValidator,
+  },
   handler: async (ctx, args) => {
-    const membership = await ctx.db
-      .query("group_chat_members")
-      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
-      .first();
-
-    if (membership) {
-      const chat = await ctx.db.get(membership.group_chat_id);
-      if (chat && chat.name === "AI Assistant") {
-        return membership.group_chat_id;
-      }
-    }
-
     const chatId = await ctx.db.insert("group_chat", {
-      name: "AI Assistant",
+      name: args.name,
       created_at: BigInt(Date.now()),
+      mode: args.mode,
     });
 
     await ctx.db.insert("group_chat_members", {
@@ -27,6 +26,52 @@ export const get_or_create_ai_chat = mutation({
     });
 
     return chatId;
+  },
+});
+
+export const get_user_conversations = query({
+  args: { user_id: v.id("users") },
+  handler: async (ctx, args) => {
+    const memberships = await ctx.db
+      .query("group_chat_members")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
+      .collect();
+
+    const conversations = await Promise.all(
+      memberships.map(async (membership) => {
+        const chat = await ctx.db.get(membership.group_chat_id);
+        return chat;
+      })
+    );
+
+    return conversations
+      .filter((chat): chat is NonNullable<typeof chat> => chat !== null)
+      .sort((a, b) => Number(b.created_at - a.created_at));
+  },
+});
+
+export const delete_conversation = mutation({
+  args: { group_chat_id: v.id("group_chat") },
+  handler: async (ctx, args) => {
+    const messages = await ctx.db
+      .query("message")
+      .withIndex("by_group_chat_id", (q) => q.eq("group_chat_id", args.group_chat_id))
+      .collect();
+
+    for (const message of messages) {
+      await ctx.db.delete(message._id);
+    }
+
+    const memberships = await ctx.db
+      .query("group_chat_members")
+      .withIndex("by_group_chat_id", (q) => q.eq("group_chat_id", args.group_chat_id))
+      .collect();
+
+    for (const membership of memberships) {
+      await ctx.db.delete(membership._id);
+    }
+
+    await ctx.db.delete(args.group_chat_id);
   },
 });
 

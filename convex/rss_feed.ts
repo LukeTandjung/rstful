@@ -28,7 +28,6 @@ export const post_rss_feed = mutation({
     url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
-    unread_count: v.optional(v.number()),
     failure_count: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -39,7 +38,6 @@ export const post_rss_feed = mutation({
       url: args.url,
       status: args.status,
       last_fetched: args.last_fetched,
-      unread_count: args.unread_count ?? 0,
       failure_count: args.failure_count ?? 0,
     });
     return new_rss_feed_id;

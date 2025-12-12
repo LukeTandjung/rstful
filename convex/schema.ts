@@ -34,7 +34,6 @@ export default defineSchema({
     url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
-    unread_count: v.number(),
     failure_count: v.optional(v.number()),
   }).index("by_user_id", ["user_id"]),
 
@@ -70,6 +69,11 @@ export default defineSchema({
   group_chat: defineTable({
     name: v.string(),
     created_at: v.int64(),
+    mode: v.union(
+      v.literal("regular"),
+      v.literal("x_search"),
+      v.literal("user"),
+    ),
   }),
 
   group_chat_members: defineTable({

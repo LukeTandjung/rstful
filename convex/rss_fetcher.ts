@@ -93,7 +93,6 @@ async function fetch_single_feed(
       status: "active",
       failure_count: 0,
       last_fetched: BigInt(Date.now()),
-      unread_count_increment: inserted_count,
     });
 
     return { success: true, articles_count: valid_articles.length };
@@ -108,14 +107,13 @@ async function fetch_single_feed(
       status: new_status,
       failure_count: new_failure_count,
       last_fetched: BigInt(Date.now()),
-      unread_count_increment: 0,
     });
 
     throw error;
   }
 }
 
-// Internal mutation to store cached articles
+// Internal mutation to store cached articles and clean up stale entries
 export const store_cached_articles = internalMutation({
   args: {
     user_id: v.id("users"),
@@ -132,16 +130,27 @@ export const store_cached_articles = internalMutation({
     ),
   },
   handler: async (ctx, args): Promise<number> => {
+    const currentLinks = new Set(args.articles.map((a) => a.link));
+
+    // Get all existing cached articles for this feed
+    const existingArticles = await ctx.db
+      .query("cached_content")
+      .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
+      .collect();
+
+    // Delete articles no longer in the feed
+    for (const existing of existingArticles) {
+      if (!currentLinks.has(existing.link)) {
+        await ctx.db.delete(existing._id);
+      }
+    }
+
+    // Insert new articles
     let inserted_count = 0;
+    const existingLinks = new Set(existingArticles.map((a) => a.link));
 
     for (const article of args.articles) {
-      // Check if article already exists by link
-      const existing = await ctx.db
-        .query("cached_content")
-        .withIndex("by_link", (q) => q.eq("link", article.link))
-        .first();
-
-      if (!existing) {
+      if (!existingLinks.has(article.link)) {
         await ctx.db.insert("cached_content", {
           user_id: args.user_id,
           rss_feed_id: args.rss_feed_id,
@@ -168,7 +177,6 @@ export const update_feed_status = internalMutation({
     status: v.string(),
     failure_count: v.number(),
     last_fetched: v.int64(),
-    unread_count_increment: v.number(),
   },
   handler: async (ctx, args) => {
     const feed = await ctx.db.get(args.rss_feed_id);
@@ -180,7 +188,6 @@ export const update_feed_status = internalMutation({
       status: args.status,
       failure_count: args.failure_count,
       last_fetched: args.last_fetched,
-      unread_count: feed.unread_count + args.unread_count_increment,
     });
   },
 });
