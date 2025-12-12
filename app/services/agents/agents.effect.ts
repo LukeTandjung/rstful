@@ -149,6 +149,23 @@ export const QueryAgentLive = Layer.effect(
   )
 );
 
+// Helper to extract JSON from a response that may have surrounding text
+function extractJson(text: string): string {
+  // Try to find JSON in code blocks first
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+
+  // Try to find JSON object directly
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
+  }
+
+  return text;
+}
+
 export const ParserAgentLive = Layer.effect(
   ParserAgent,
   AgentRunner.pipe(
@@ -168,9 +185,13 @@ export const ParserAgentLive = Layer.effect(
             ...(tools && { tools }),
             maxSteps: 5,
           }),
+          Effect.tap((result) => Effect.sync(() => console.log("Parser raw output:", result.finalOutput))),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => JSON.parse(result.finalOutput) as ParserResult,
+              try: () => {
+                const jsonStr = extractJson(result.finalOutput);
+                return JSON.parse(jsonStr) as ParserResult;
+              },
               catch: () =>
                 new ParserAgentError({
                   message: "Failed to parse classifier response as JSON",
