@@ -27,4 +27,7 @@ body {
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
+  background:
+    linear-gradient(0deg, rgba(31, 31, 40, 0.5) 0%, rgba(31, 31, 40, 0.5) 100%),
+    url("/assets/banner.png") center / cover no-repeat fixed;
 }

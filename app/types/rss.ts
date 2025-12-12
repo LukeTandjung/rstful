@@ -8,7 +8,6 @@ export interface RssFeed {
   url: string;
   category: string;
   last_fetched: bigint;
-  unread_count: number;
   status: string;
 }
 
