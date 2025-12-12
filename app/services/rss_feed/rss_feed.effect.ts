@@ -23,7 +23,7 @@ const validate_feed_inputs = (name: string, url: string, category: string) =>
 
 // Create the service Layer for mutations and actions
 export const make_rss_feed_service_live = (
-  postRssFeedMutation: (args: { user_id: Id<"users">, name: string, category: string, url: string, status: string, last_fetched: bigint, unread_count?: number, failure_count?: number }) => Promise<Id<"rss_feed">>,
+  postRssFeedMutation: (args: { user_id: Id<"users">, name: string, category: string, url: string, status: string, last_fetched: bigint, failure_count?: number }) => Promise<Id<"rss_feed">>,
   putRssFeedMutation: (args: { rss_feed_id: Id<"rss_feed">, name: string, category: string, url: string }) => Promise<Id<"rss_feed">>,
   deleteRssFeedMutation: (args: { rss_feed_id: Id<"rss_feed"> }) => Promise<Id<"rss_feed">>,
   fetchUserFeedsAction: (args: { user_id: Id<"users"> }) => Promise<{ success: boolean; total: number; successful: number; failed: number; message?: string }>,
@@ -41,7 +41,6 @@ export const make_rss_feed_service_live = (
               url,
               status: "active",
               last_fetched: BigInt(Date.now()),
-              unread_count: 0,
               failure_count: 0,
             }),
             catch: (error) => new RssFeedMutationError({ message: String(error) }),

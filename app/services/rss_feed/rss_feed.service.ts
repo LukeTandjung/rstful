@@ -11,7 +11,6 @@ export interface RssFeedDoc {
   url: string;
   status: string;
   last_fetched: bigint;
-  unread_count: number;
   failure_count: number;
 }
 
