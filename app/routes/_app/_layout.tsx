@@ -97,7 +97,7 @@ export default function Layout() {
 
       <Authenticated>
         <div className="bg-background flex flex-col h-screen w-full">
-          <div className="h-30 md:h-40 lg:h-50 relative w-full shrink-0">
+          <div className="h-16 md:h-20 lg:h-24 relative w-full shrink-0">
             <img
               src="/assets/banner.png"
               alt="Banner"

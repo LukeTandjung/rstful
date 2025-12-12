@@ -42,9 +42,24 @@ export default function Chat() {
     }
   }, [viewer?._id, chatId, getOrCreateChat]);
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages: streamingMessages, sendMessage, status, stop } = useChat({
     transport: { api: "/api/chat" },
   });
+
+  const displayMessages = [
+    ...(dbMessages || []).map((msg) => ({
+      role: msg.role || "user",
+      content: msg.content,
+      id: msg._id,
+    })),
+    ...streamingMessages.filter(
+      (sm) => !dbMessages?.some((db) => db.content === sm.content && db.role === sm.role)
+    ).map((msg, i) => ({
+      role: msg.role,
+      content: msg.content,
+      id: `streaming-${i}`,
+    })),
+  ];
 
   const handleSend = async () => {
     if (!input.trim() || status === "streaming" || !viewer?._id || !chatId) return;
@@ -73,8 +88,8 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    if (status === "ready" && messages.length > 0 && viewer?._id && chatId) {
-      const lastMsg = messages[messages.length - 1];
+    if (status === "ready" && streamingMessages.length > 0 && viewer?._id && chatId) {
+      const lastMsg = streamingMessages[streamingMessages.length - 1];
       const content = getMessageContent(lastMsg?.content);
       if (lastMsg?.role === "assistant" && content) {
         sendMessageMutation({
@@ -85,11 +100,11 @@ export default function Chat() {
         });
       }
     }
-  }, [status, messages, viewer?._id, chatId, sendMessageMutation]);
+  }, [status, streamingMessages, viewer?._id, chatId, sendMessageMutation]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -106,15 +121,15 @@ export default function Chat() {
         icon={<ChatBubbleLeftRightIcon className="size-7" />}
         title="AI Chat"
         description="Chat with an AI assistant about your RSS feeds"
-        className="md:min-h-0"
+        className="md:min-h-0 md:grow"
       >
         <div className="flex flex-col grow min-h-0 w-full">
           <ScrollArea.Root className="flex grow min-h-0 w-full">
             <ScrollArea.Viewport ref={scrollRef} className="flex grow min-h-0 w-full">
               <div className="flex flex-col gap-4 p-4 w-full">
-                {messages.map((message, index) => (
+                {displayMessages.map((message) => (
                   <div
-                    key={index}
+                    key={message.id}
                     className={`flex w-full ${
                       message.role === "user" ? "justify-end" : "justify-start"
                     }`}
@@ -132,7 +147,7 @@ export default function Chat() {
                     </div>
                   </div>
                 ))}
-                {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+                {isStreaming && displayMessages[displayMessages.length - 1]?.role !== "assistant" && (
                   <div className="flex items-start gap-2">
                     <div className="bg-background-select rounded-lg p-4">
                       <div className="font-normal text-base leading-7 text-text-alt">
