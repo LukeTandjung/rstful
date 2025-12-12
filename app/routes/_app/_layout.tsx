@@ -96,19 +96,10 @@ export default function Layout() {
       </Unauthenticated>
 
       <Authenticated>
-        <div className="bg-background flex flex-col h-screen w-full">
-          <div className="h-16 md:h-20 lg:h-24 relative w-full shrink-0">
-            <img
-              src="/assets/banner.png"
-              alt="Banner"
-              className="absolute inset-0 max-w-none object-cover object-center pointer-events-none size-full"
-            />
-          </div>
-          <div className="flex flex-col gap-6 grow min-h-0 p-6 w-full">
-            <MenuBar userName={viewer?.name} />
-            <Separator className="w-full bg-border-unfocus h-0.5 shrink-0" />
-            <Outlet />
-          </div>
+        <div className="flex flex-col gap-6 h-screen p-6 w-full">
+          <MenuBar userName={viewer?.name} />
+          <Separator className="w-full bg-border-unfocus h-0.5 shrink-0" />
+          <Outlet />
         </div>
       </Authenticated>
     </>

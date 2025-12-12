@@ -185,10 +185,18 @@ export default function Home() {
 
   const isLoadingFeeds = feeds === undefined;
   const feedsList = feeds ?? [];
-  const totalUnread = feedsList.reduce((sum: number, feed: Doc<"rss_feed">) => sum + feed.unread_count, 0);
 
   const articles = cachedArticles ?? [];
   const isLoadingArticles = cachedArticles === undefined;
+
+  // Calculate unread counts from cached articles
+  const unreadCountByFeed = articles.reduce((acc: Record<string, number>, article: Doc<"cached_content">) => {
+    if (!article.is_read && article.rss_feed_id) {
+      acc[article.rss_feed_id] = (acc[article.rss_feed_id] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  const totalUnread = articles.filter((a: Doc<"cached_content">) => !a.is_read).length;
 
   // Helper to check if article is starred
   const savedLinks = new Set(savedArticles?.map((s) => s.link) ?? []);
@@ -218,6 +226,7 @@ export default function Home() {
                     <FeedCollapsibleItem
                       key={feed._id}
                       feed={feed}
+                      unreadCount={unreadCountByFeed[feed._id] || 0}
                       onRefresh={handleRefreshFeed}
                       onEdit={handleEditFeed}
                       onRemove={handleRemoveFeed}
