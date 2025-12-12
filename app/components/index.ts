@@ -1,12 +1,15 @@
 export { AddFeedDialog } from "./AddFeedDialog";
 export { ArticleListItem } from "./ArticleListItem";
 export { ArticleReader } from "./ArticleReader";
+export { ChatModeToggle } from "./ChatModeToggle";
+export type { ChatMode } from "./ChatModeToggle";
+export { ConversationListItem } from "./ConversationListItem";
 export { CustomSelect } from "./CustomSelect";
+export { CustomSwitch } from "./CustomSwitch";
 export { EditFeedDialog } from "./EditFeedDialog";
 export { FeedCollapsibleItem } from "./FeedCollapsibleItem";
 export { FormField } from "./FormField";
 export { MenuBar } from "./MenuBar";
-export { RemoveFeedDialog } from "./RemoveFeedDialog";
+export { DeleteConfirmDialog } from "./RemoveFeedDialog";
 export { SectionCard } from "./SectionCard";
 export { TokenProgress } from "./TokenProgress";
-export { CustomSwitch } from "./CustomSwitch";
