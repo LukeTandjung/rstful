@@ -7,7 +7,7 @@ import {
 import type { Id } from "convex/_generated/dataModel";
 import { DeleteConfirmDialog } from "./RemoveFeedDialog";
 
-type ChatMode = "regular" | "x_search" | "user";
+type ChatMode = "regular" | "deep_search" | "user";
 
 interface ConversationListItemProps {
   id: Id<"group_chat">;
@@ -20,7 +20,7 @@ interface ConversationListItemProps {
 
 const modeIcons: Record<ChatMode, typeof ChatBubbleLeftRightIcon> = {
   regular: ChatBubbleLeftRightIcon,
-  x_search: MagnifyingGlassIcon,
+  deep_search: MagnifyingGlassIcon,
   user: UserIcon,
 };
 

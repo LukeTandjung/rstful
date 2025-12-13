@@ -6,7 +6,8 @@ import type {
   AgentRunOptions,
   ParserResult,
   ChemistryCriteria,
-  XHandle,
+  ContentCreator,
+  Platform,
   FootprintResult,
   JudgeResult,
   DeepSearchConfig,
@@ -48,7 +49,7 @@ export class RouterAgent extends Context.Tag("RouterAgent")<
     readonly route: (
       input: string
     ) => Effect.Effect<
-      { intent: "simple_query" | "web_search" | "deep_x_search"; confidence: number },
+      { intent: "simple_query" | "web_search" | "deep_search"; confidence: number },
       RouterAgentError
     >;
   }
@@ -79,12 +80,13 @@ export class ParserAgent extends Context.Tag("ParserAgent")<
 export class OrchestratorAgent extends Context.Tag("OrchestratorAgent")<
   OrchestratorAgent,
   {
-    readonly searchHandles: (
+    readonly searchCreators: (
       compatibilityString: string,
+      platform: Platform,
       count: number
-    ) => Effect.Effect<Array<XHandle>, OrchestratorAgentError>;
+    ) => Effect.Effect<Array<ContentCreator>, OrchestratorAgentError>;
     readonly generateFootprint: (
-      handle: XHandle
+      creator: ContentCreator
     ) => Effect.Effect<FootprintResult, OrchestratorAgentError>;
   }
 >() {}

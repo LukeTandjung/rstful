@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 const chatModeValidator = v.union(
   v.literal("regular"),
-  v.literal("x_search"),
+  v.literal("deep_search"),
   v.literal("user")
 );
 

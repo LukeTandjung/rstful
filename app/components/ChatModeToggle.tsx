@@ -5,7 +5,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/16/solid";
 
-export type ChatMode = "regular" | "x_search";
+export type ChatMode = "regular" | "deep_search";
 
 interface ChatModeToggleProps {
   mode: ChatMode;
@@ -32,10 +32,10 @@ export function ChatModeToggle({ mode, onModeChange }: ChatModeToggleProps) {
         Article Chat
       </Toggle>
       <Toggle
-        value="x_search"
+        value="deep_search"
         className="flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm leading-5 text-text-alt transition-colors data-pressed:bg-background-select data-pressed:text-text"
       >
-        <MagnifyingGlassIcon className="size-4" />X Search
+        <MagnifyingGlassIcon className="size-4" />Deep Search
       </Toggle>
     </ToggleGroup>
   );

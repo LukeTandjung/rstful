@@ -65,12 +65,24 @@ export const ChemistryCriteria = Schema.Struct({
   }),
 });
 
-export const XHandle = Schema.Struct({
-  username: Schema.String,
-  displayName: Schema.String,
-  bio: Schema.String,
-  recentTweets: Schema.Array(Schema.String),
+export const Platform = Schema.Literal("x", "substack", "blog", "youtube");
+
+export const ContentCreator = Schema.Struct({
+  name: Schema.String,
+  platform: Platform,
+  profileUrl: Schema.String,
+  bio: Schema.optional(Schema.String),
+  recentContent: Schema.Array(
+    Schema.Struct({
+      title: Schema.optional(Schema.String),
+      excerpt: Schema.String,
+      url: Schema.String,
+    })
+  ),
 });
+
+// Legacy alias for backwards compatibility during migration
+export const XHandle = ContentCreator;
 
 export const FootprintResult = Schema.Union(
   Schema.Struct({
@@ -83,14 +95,18 @@ export const FootprintResult = Schema.Union(
   })
 );
 
-export const XUser = Schema.Struct({
+export const Creator = Schema.Struct({
   id: Schema.String,
-  username: Schema.String,
-  displayName: Schema.String,
-  bio: Schema.String,
+  name: Schema.String,
+  platform: Platform,
+  profileUrl: Schema.String,
+  bio: Schema.optional(Schema.String),
   footprint: ChemistryCriteria,
   rawData: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
 });
+
+// Legacy alias for backwards compatibility during migration
+export const XUser = Creator;
 
 export const JudgeResult = Schema.Struct({
   score: Schema.Number,
@@ -106,6 +122,7 @@ export const ParserResult = Schema.Union(
   }),
   Schema.Struct({
     status: Schema.Literal("complete"),
+    platform: Platform,
     compatibility_string: Schema.String,
     chemistry_criteria: ChemistryCriteria,
   })
@@ -146,9 +163,12 @@ export const DeepSearchResult = Schema.Union(
 );
 
 export type ChemistryCriteria = typeof ChemistryCriteria.Type;
-export type XHandle = typeof XHandle.Type;
+export type Platform = typeof Platform.Type;
+export type ContentCreator = typeof ContentCreator.Type;
+export type XHandle = typeof XHandle.Type; // Legacy alias
 export type FootprintResult = typeof FootprintResult.Type;
-export type XUser = typeof XUser.Type;
+export type Creator = typeof Creator.Type;
+export type XUser = typeof XUser.Type; // Legacy alias
 export type JudgeResult = typeof JudgeResult.Type;
 export type ParserResult = typeof ParserResult.Type;
 export type StoredChemistryCriteria = typeof StoredChemistryCriteria.Type;

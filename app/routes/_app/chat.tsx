@@ -74,7 +74,7 @@ export default function Chat() {
     if (!viewer?._id) return;
     const id = await createConversation({
       user_id: viewer._id,
-      name: `New ${chatMode === "x_search" ? "X Search" : "Chat"}`,
+      name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
       mode: chatMode,
     });
     setChatId(id);
@@ -128,7 +128,7 @@ export default function Chat() {
     if (!currentChatId) {
       currentChatId = await createConversation({
         user_id: viewer._id,
-        name: `New ${chatMode === "x_search" ? "X Search" : "Chat"}`,
+        name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
         mode: chatMode,
       });
       setChatId(currentChatId);
@@ -195,13 +195,13 @@ export default function Chat() {
   const effectiveMode = selectedConversation?.mode ?? chatMode;
 
   const placeholderText =
-    effectiveMode === "x_search"
-      ? "Describe the type of people you want to find on X..."
+    effectiveMode === "deep_search"
+      ? "Describe the type of people you want to find online..."
       : "Type your message... (Press Enter to send)";
 
   const cardDescription =
-    effectiveMode === "x_search"
-      ? "Find interesting people on X/Twitter"
+    effectiveMode === "deep_search"
+      ? "Find interesting people online"
       : "Chat with an AI assistant about your RSS feeds";
 
   return (
@@ -266,7 +266,7 @@ export default function Chat() {
         icon={<ChatBubbleLeftRightIcon className="size-7" />}
         title={
           selectedConversation?.name ??
-          (effectiveMode === "x_search" ? "X Search" : "AI Chat")
+          (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat")
         }
         description={cardDescription}
         className="md:min-h-0 md:grow"

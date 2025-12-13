@@ -57,7 +57,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const body = await request.json();
   const messages = body.messages || [];
   const userId = body.user_id as Id<"users"> | undefined;
-  const mode = body.mode as "regular" | "x_search" | undefined;
+  const mode = body.mode as "regular" | "deep_search" | undefined;
 
   const agentRunner = Effect.runSync(Effect.provide(AgentRunner, MainLayer));
   const parserAgent = Effect.runSync(Effect.provide(ParserAgent, MainLayer));
@@ -76,7 +76,7 @@ export async function action({ request }: ActionFunctionArgs) {
   let mcpServers: Array<string> = [];
   let finalInput = input;
 
-  if (mode === "x_search") {
+  if (mode === "deep_search") {
     // X Search mode - always use ParserAgent flow
     const parserResult = await Effect.runPromise(
       pipe(
@@ -99,12 +99,12 @@ export async function action({ request }: ActionFunctionArgs) {
       mcpServers = [];
     } else {
       // We have complete criteria, use OrchestratorAgent to search
-      console.log("Parser complete, searching for:", parserResult.compatibility_string);
+      console.log("Parser complete, searching for:", parserResult.compatibility_string, "on", parserResult.platform);
 
       const searchResult = await Effect.runPromise(
         pipe(
-          orchestratorAgent.searchHandles(parserResult.compatibility_string, 10),
-          Effect.tap((handles) => Effect.sync(() => console.log("Orchestrator returned:", handles.length, "handles"))),
+          orchestratorAgent.searchCreators(parserResult.compatibility_string, parserResult.platform, 10),
+          Effect.tap((creators) => Effect.sync(() => console.log("Orchestrator returned:", creators.length, "creators"))),
           Effect.catchAll((error) => {
             console.error("Orchestrator error:", error);
             return Effect.succeed([]);
@@ -114,13 +114,24 @@ export async function action({ request }: ActionFunctionArgs) {
 
       console.log("Search result length:", searchResult.length);
 
+      const platformNames: Record<string, string> = {
+        x: "X/Twitter",
+        substack: "Substack",
+        blog: "blog",
+        youtube: "YouTube",
+      };
+      const platformName = platformNames[parserResult.platform] || parserResult.platform;
+
       if (searchResult.length === 0) {
-        finalInput = "__DIRECT_RESPONSE__I couldn't find any X/Twitter users matching your criteria. Try broadening your search or describing different characteristics.";
+        finalInput = `__DIRECT_RESPONSE__I couldn't find any ${platformName} creators matching your criteria. Try broadening your search or describing different characteristics.`;
       } else {
         const formattedResults = searchResult
-          .map((handle, i) => `${i + 1}. @${handle.username} - ${handle.displayName}\n   Bio: ${handle.bio}`)
+          .map((creator, i) => {
+            const bio = creator.bio ? `\n   Bio: ${creator.bio}` : "";
+            return `${i + 1}. ${creator.name}${bio}\n   ${creator.profileUrl}`;
+          })
           .join("\n\n");
-        finalInput = `__DIRECT_RESPONSE__Here are X/Twitter users matching your criteria:\n\n${formattedResults}`;
+        finalInput = `__DIRECT_RESPONSE__Here are ${platformName} creators matching your criteria:\n\n${formattedResults}`;
       }
       mcpServers = [];
     }
