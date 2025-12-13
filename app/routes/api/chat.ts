@@ -7,11 +7,11 @@ import type { Id } from "convex/_generated/dataModel";
 import {
   AgentRunner,
   DedalusRunnerService,
-  RouterAgent,
   ParserAgent,
+  OrchestratorAgent,
   AgentRunnerLive,
-  RouterAgentLive,
   ParserAgentLive,
+  OrchestratorAgentLive,
 } from "services/agents";
 
 const client = new Dedalus();
@@ -19,12 +19,12 @@ const dedalusRunner = new DedalusRunner(client);
 
 const DedalusRunnerServiceLive = Layer.succeed(DedalusRunnerService, { runner: dedalusRunner });
 const AgentLayer = Layer.provide(AgentRunnerLive, DedalusRunnerServiceLive);
-const RouterLayer = Layer.provide(RouterAgentLive, AgentLayer);
 const ParserLayer = Layer.provide(ParserAgentLive, AgentLayer);
+const OrchestratorLayer = Layer.provide(OrchestratorAgentLive, AgentLayer);
 const MainLayer = pipe(
   AgentLayer,
-  Layer.provideMerge(RouterLayer),
-  Layer.provideMerge(ParserLayer)
+  Layer.provideMerge(ParserLayer),
+  Layer.provideMerge(OrchestratorLayer)
 );
 
 const convexUrl = process.env.VITE_CONVEX_URL;
@@ -60,8 +60,8 @@ export async function action({ request }: ActionFunctionArgs) {
   const mode = body.mode as "regular" | "x_search" | undefined;
 
   const agentRunner = Effect.runSync(Effect.provide(AgentRunner, MainLayer));
-  const routerAgent = Effect.runSync(Effect.provide(RouterAgent, MainLayer));
   const parserAgent = Effect.runSync(Effect.provide(ParserAgent, MainLayer));
+  const orchestratorAgent = Effect.runSync(Effect.provide(OrchestratorAgent, MainLayer));
 
   const lastMessage = messages[messages.length - 1];
   const input = lastMessage?.content || "";
@@ -76,21 +76,17 @@ export async function action({ request }: ActionFunctionArgs) {
   let mcpServers: Array<string> = [];
   let finalInput = input;
 
-  console.log("Chat mode:", mode);
-
   if (mode === "x_search") {
     // X Search mode - always use ParserAgent flow
     const parserResult = await Effect.runPromise(
       pipe(
         parserAgent.parse(input, conversationHistory),
-        Effect.tap((result) => Effect.sync(() => console.log("Parser result:", result))),
-        Effect.catchAll((error) => {
-          console.error("Parser error:", error);
-          return Effect.succeed({
+        Effect.catchAll(() =>
+          Effect.succeed({
             status: "needs_clarification" as const,
             questions: ["What type of people are you looking for on X?"]
-          });
-        })
+          })
+        )
       )
     );
 
@@ -102,43 +98,42 @@ export async function action({ request }: ActionFunctionArgs) {
       finalInput = `__DIRECT_RESPONSE__${questionsText}`;
       mcpServers = [];
     } else {
-      // We have complete criteria, proceed with X search
-      mcpServers = ["luketandjung/grok-search-mcp"];
-      finalInput = `Search for X/Twitter users matching: "${parserResult.compatibility_string}". Find users who match these criteria and provide their handles with brief descriptions of why they match.`;
-    }
-  } else if (userId) {
-    // Regular mode - use router to decide between simple_query and web_search
-    const routeResult = await Effect.runPromise(
-      pipe(
-        routerAgent.route(input),
-        Effect.tap((result) => Effect.sync(() => console.log("Router result:", result))),
-        Effect.catchAll((error) => {
-          console.error("Router error:", error);
-          return Effect.succeed({ intent: "web_search" as const, confidence: 0 });
-        })
-      )
-    );
+      // We have complete criteria, use OrchestratorAgent to search
+      console.log("Parser complete, searching for:", parserResult.compatibility_string);
 
-    console.log("Classified intent:", routeResult.intent);
+      const searchResult = await Effect.runPromise(
+        pipe(
+          orchestratorAgent.searchHandles(parserResult.compatibility_string, 10),
+          Effect.tap((handles) => Effect.sync(() => console.log("Orchestrator returned:", handles.length, "handles"))),
+          Effect.catchAll((error) => {
+            console.error("Orchestrator error:", error);
+            return Effect.succeed([]);
+          })
+        )
+      );
 
-    if (routeResult.intent === "simple_query") {
-      context = await fetchSavedArticles(userId);
+      console.log("Search result length:", searchResult.length);
+
+      if (searchResult.length === 0) {
+        finalInput = "__DIRECT_RESPONSE__I couldn't find any X/Twitter users matching your criteria. Try broadening your search or describing different characteristics.";
+      } else {
+        const formattedResults = searchResult
+          .map((handle, i) => `${i + 1}. @${handle.username} - ${handle.displayName}\n   Bio: ${handle.bio}`)
+          .join("\n\n");
+        finalInput = `__DIRECT_RESPONSE__Here are X/Twitter users matching your criteria:\n\n${formattedResults}`;
+      }
       mcpServers = [];
-      finalInput = context
-        ? `You have access to the user's saved articles. Use them to answer questions about saved content.\n\n<saved_articles>\n${context}\n</saved_articles>\n\nUser question: ${input}`
-        : input;
-    } else {
-      // web_search or deep_x_search (in regular mode, treat deep_x_search as web_search)
-      mcpServers = ["joerup/exa-mcp", "simon-liang/brave-search-mcp"];
     }
   } else {
+    // Regular mode - use saved articles context + search MCPs for full article content
+    context = userId ? await fetchSavedArticles(userId) : "";
     mcpServers = ["joerup/exa-mcp", "simon-liang/brave-search-mcp"];
+    finalInput = context
+      ? `You have access to the user's saved articles. Use them to answer questions, and use search tools to fetch full article content when needed.\n\n<saved_articles>\n${context}\n</saved_articles>\n\nUser question: ${input}`
+      : input;
   }
 
-  console.log("Using MCP servers:", mcpServers);
-  console.log("Final input:", finalInput.substring(0, 100) + "...");
-
-  // Handle direct responses (e.g., clarifying questions)
+  // Handle direct responses (e.g., clarifying questions, X search results)
   if (finalInput.startsWith("__DIRECT_RESPONSE__")) {
     const directResponse = finalInput.replace("__DIRECT_RESPONSE__", "");
     const encoder = new TextEncoder();
@@ -168,6 +163,7 @@ export async function action({ request }: ActionFunctionArgs) {
     model: "anthropic/claude-sonnet-4-5-20250929",
     ...(mcpServers.length > 0 && { mcpServers }),
     maxSteps: 10,
+    systemPrompt: "You are a helpful assistant. Use the available search tools when you need to find information online or fetch full article content.",
   });
 
   const encoder = new TextEncoder();

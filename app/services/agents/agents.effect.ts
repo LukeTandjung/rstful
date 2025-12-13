@@ -217,13 +217,15 @@ export const OrchestratorAgentLive = Layer.effect(
     Effect.map(({ run }) => ({
       searchHandles: (compatibilityString: string, count: number) =>
         pipe(
-          run({
+          Effect.sync(() => console.log("OrchestratorAgent.searchHandles called with:", compatibilityString)),
+          Effect.flatMap(() => run({
             input: `Search for X users matching: "${compatibilityString}". Find up to ${count} handles.`,
             model: "anthropic/claude-sonnet-4-5-20250929",
             systemPrompt: ORCHESTRATOR_SEARCH_PROMPT,
             mcpServers: ["luketandjung/grok-search-mcp"],
             maxSteps: 5,
-          }),
+          })),
+          Effect.tap((result) => Effect.sync(() => console.log("OrchestratorAgent.searchHandles result:", result.finalOutput?.substring(0, 200)))),
           Effect.flatMap((result) =>
             Effect.try({
               try: () => {
