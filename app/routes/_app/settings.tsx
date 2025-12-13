@@ -1,14 +1,16 @@
 import type { Route } from "./+types/settings";
-import { Separator } from "@base-ui-components/react/separator";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
-import { SectionCard, MenuBar, TokenProgress, CustomSwitch } from "components";
+import { SectionCard, TokenProgress } from "components";
 import { useNavigate } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
 import { AuthService } from "services/auth";
 import { appRuntime } from "services/runtime";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
+import { downloadOpml, parseOpml, readOpmlFile } from "services/opml";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -22,6 +24,60 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Settings() {
   const navigate = useNavigate();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const viewer = useQuery(api.auth.currentUser);
+  const feeds = useQuery(
+    api.rss_feed.get_feeds_for_export,
+    viewer?._id ? { user_id: viewer._id } : "skip"
+  );
+  const importFeeds = useMutation(api.rss_feed.import_feeds);
+
+  const handleExport = () => {
+    if (!feeds || feeds.length === 0) {
+      alert("No feeds to export");
+      return;
+    }
+    downloadOpml(feeds, "rss-feeds.opml");
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewer?._id) return;
+
+    try {
+      const opmlText = await readOpmlFile(file);
+      const { feeds: parsedFeeds, errors } = parseOpml(opmlText);
+
+      if (errors.length > 0) {
+        alert(`Error parsing OPML: ${errors.join(", ")}`);
+        return;
+      }
+
+      if (parsedFeeds.length === 0) {
+        alert("No feeds found in OPML file");
+        return;
+      }
+
+      const result = await importFeeds({
+        user_id: viewer._id,
+        feeds: parsedFeeds,
+      });
+
+      alert(`Imported ${result.imported} feeds, skipped ${result.skipped} duplicates`);
+    } catch (err) {
+      alert(`Failed to import: ${err}`);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleLogout = () => {
     if (!appRuntime) {
@@ -88,94 +144,6 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* General Settings */}
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-lg leading-7 text-text">
-                    General
-                  </h3>
-                  <p className="font-normal text-sm leading-6 text-text-alt">
-                    Configure general application settings
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-4 pl-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Auto-refresh feeds
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Automatically check for new articles
-                      </div>
-                    </div>
-                    <CustomSwitch />
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Mark as read on scroll
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Automatically mark articles as read when scrolled past
-                      </div>
-                    </div>
-                    <CustomSwitch />
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Show unread count
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Display unread article counts in feed list
-                      </div>
-                    </div>
-                    <CustomSwitch />
-                  </div>
-                </div>
-              </div>
-
-              {/* Reading Preferences */}
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-lg leading-7 text-text">
-                    Reading Preferences
-                  </h3>
-                  <p className="font-normal text-sm leading-6 text-text-alt">
-                    Customize your reading experience
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-4 pl-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Open links in new tab
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Open article links in a new browser tab
-                      </div>
-                    </div>
-                    <CustomSwitch />
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Show full article content
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Display full content instead of summaries
-                      </div>
-                    </div>
-                    <CustomSwitch />
-                  </div>
-                </div>
-              </div>
-
               {/* Data Management */}
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
@@ -191,27 +159,16 @@ export default function Settings() {
                   <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
                     <div className="flex flex-col gap-1">
                       <div className="font-medium text-base leading-6 text-text">
-                        Clear read articles
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Remove all read articles older than 30 days
-                      </div>
-                    </div>
-                    <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
-                      Clear
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
                         Export feeds (OPML)
                       </div>
                       <div className="font-normal text-sm leading-5 text-text-alt">
                         Export your feed subscriptions as OPML file
                       </div>
                     </div>
-                    <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
+                    <Button
+                      onClick={handleExport}
+                      className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
+                    >
                       Export
                     </Button>
                   </div>
@@ -225,9 +182,19 @@ export default function Settings() {
                         Import feed subscriptions from OPML file
                       </div>
                     </div>
-                    <Button className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors">
+                    <Button
+                      onClick={handleImportClick}
+                      className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
+                    >
                       Import
                     </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".opml,.xml"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
                   </div>
                 </div>
               </div>
