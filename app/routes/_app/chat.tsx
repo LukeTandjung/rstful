@@ -4,14 +4,12 @@ import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import {
   ChatBubbleLeftRightIcon,
   PaperAirplaneIcon,
-  StopIcon,
   ClockIcon,
   PlusIcon,
 } from "@heroicons/react/16/solid";
 import { SectionCard, ChatModeToggle, ConversationListItem } from "components";
 import type { ChatMode } from "components";
 import { Button } from "@base-ui-components/react/button";
-import { useChat } from "dedalus-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -26,10 +24,15 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+type StreamStatus = "idle" | "thinking" | "searching" | "generating";
+
 export default function Chat() {
   const [input, setInput] = useState("");
   const [chatMode, setChatMode] = useState<ChatMode>("regular");
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
+  const [streamingContent, setStreamingContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [chatId, setChatId] = useState<Id<"group_chat"> | null>(null);
 
@@ -41,33 +44,19 @@ export default function Chat() {
   const createConversation = useMutation(api.chat.create_conversation);
   const deleteConversation = useMutation(api.chat.delete_conversation);
   const sendMessageMutation = useMutation(api.chat.send_message);
-  const dbMessages = useQuery(
+
+  // Single source of truth: Convex database
+  const messages = useQuery(
     api.chat.get_messages,
     chatId ? { group_chat_id: chatId } : "skip",
   );
 
   const selectedConversation = conversations?.find((c) => c._id === chatId);
-
-  const {
-    messages: streamingMessages,
-    sendMessage,
-    status,
-    stop,
-    setMessages,
-  } = useChat({
-    transport: {
-      api: "/api/chat",
-      body: {
-        user_id: viewer?._id,
-        mode: selectedConversation?.mode ?? chatMode,
-      },
-    },
-  });
+  const effectiveMode = selectedConversation?.mode ?? chatMode;
 
   const handleModeChange = (newMode: ChatMode) => {
     if (chatId) return;
     setChatMode(newMode);
-    setMessages([]);
   };
 
   const handleNewConversation = async () => {
@@ -78,12 +67,10 @@ export default function Chat() {
       mode: chatMode,
     });
     setChatId(id);
-    setMessages([]);
   };
 
   const handleSelectConversation = (id: Id<"group_chat">) => {
     setChatId(id);
-    setMessages([]);
     const conversation = conversations?.find((c) => c._id === id);
     if (conversation && conversation.mode !== "user") {
       setChatMode(conversation.mode);
@@ -94,94 +81,112 @@ export default function Chat() {
     await deleteConversation({ group_chat_id: id });
     if (chatId === id) {
       setChatId(null);
-      setMessages([]);
     }
   };
 
-  const displayMessages = [
-    ...(dbMessages || []).map((msg) => ({
-      role: msg.role || "user",
-      content: msg.content,
-      id: msg._id,
-    })),
-    ...streamingMessages
-      .filter(
-        (sm) =>
-          !dbMessages?.some(
-            (db) => db.content === sm.content && db.role === sm.role,
-          ),
-      )
-      .map((msg, i) => ({
-        role: msg.role,
-        content: msg.content,
-        id: `streaming-${i}`,
-      })),
-  ];
-
   const handleSend = async () => {
-    if (!input.trim() || status === "streaming" || !viewer?._id) return;
+    if (!input.trim() || streamStatus !== "idle" || !viewer?._id) return;
 
     const userInput = input;
     setInput("");
+    setStreamingContent("");
 
-    let currentChatId = chatId;
-    if (!currentChatId) {
-      currentChatId = await createConversation({
-        user_id: viewer._id,
-        name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
-        mode: chatMode,
-      });
-      setChatId(currentChatId);
-    }
-
-    await sendMessageMutation({
-      group_chat_id: currentChatId,
-      sender_id: viewer._id,
-      content: userInput,
-      role: "user",
-    });
-
-    sendMessage(userInput);
-  };
-
-  const getMessageContent = (content: unknown): string => {
-    if (typeof content === "string") return content;
-    if (Array.isArray(content)) {
-      return content
-        .map((part) =>
-          typeof part === "object" && "text" in part ? part.text : "",
-        )
-        .join("");
-    }
-    return "";
-  };
-
-  useEffect(() => {
-    if (
-      status === "ready" &&
-      streamingMessages.length > 0 &&
-      viewer?._id &&
-      chatId
-    ) {
-      const lastMsg = streamingMessages[streamingMessages.length - 1];
-      const content = getMessageContent(lastMsg?.content);
-      if (lastMsg?.role === "assistant" && content) {
-        sendMessageMutation({
-          group_chat_id: chatId,
-          sender_id: viewer._id,
-          content,
-          role: "assistant",
+    try {
+      // Create conversation if needed
+      let currentChatId = chatId;
+      if (!currentChatId) {
+        currentChatId = await createConversation({
+          user_id: viewer._id,
+          name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
+          mode: chatMode,
         });
+        setChatId(currentChatId);
       }
-    }
-  }, [status, streamingMessages, viewer?._id, chatId, sendMessageMutation]);
 
+      // Save user message to Convex - will appear via subscription
+      await sendMessageMutation({
+        group_chat_id: currentChatId,
+        sender_id: viewer._id,
+        content: userInput,
+        role: "user",
+      });
+
+      // Start streaming from API
+      setStreamStatus("thinking");
+      abortControllerRef.current = new AbortController();
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: userInput }],
+          user_id: viewer._id,
+          chat_id: currentChatId,
+          mode: effectiveMode,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Parse SSE stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
+
+              try {
+                const event = JSON.parse(data);
+
+                if (event.type === "status") {
+                  setStreamStatus(event.status as StreamStatus);
+                } else if (event.type === "text" && event.content) {
+                  setStreamingContent((prev) => prev + event.content);
+                }
+              } catch {
+                // Ignore parse errors for malformed chunks
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("Request aborted");
+      } else {
+        console.error("Failed to send message:", error);
+        setInput(userInput);
+      }
+    } finally {
+      setStreamStatus("idle");
+      setStreamingContent("");
+      abortControllerRef.current = null;
+    }
+  };
+
+  // Auto-scroll when messages or streaming content changes
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [displayMessages]);
+  }, [messages, streamingContent, streamStatus]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -189,10 +194,6 @@ export default function Chat() {
       handleSend();
     }
   };
-
-  const isStreaming = status === "streaming";
-
-  const effectiveMode = selectedConversation?.mode ?? chatMode;
 
   const placeholderText =
     effectiveMode === "deep_search"
@@ -203,6 +204,21 @@ export default function Chat() {
     effectiveMode === "deep_search"
       ? "Find interesting people online"
       : "Chat with an AI assistant about your RSS feeds";
+
+  const isStreaming = streamStatus !== "idle";
+
+  const getStatusText = () => {
+    switch (streamStatus) {
+      case "thinking":
+        return "Thinking...";
+      case "searching":
+        return "Searching...";
+      case "generating":
+        return "Generating response...";
+      default:
+        return "";
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
@@ -252,7 +268,7 @@ export default function Chat() {
             <Button
               onClick={handleNewConversation}
               disabled={!viewer?._id}
-              className="flex items-center justify-center gap-2 bg-background-select  px-3 py-2 rounded-lg font-medium text-sm leading-5 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center gap-2 bg-background-select px-3 py-2 rounded-lg font-medium text-sm leading-5 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <PlusIcon className="size-4" />
               New Conversation
@@ -277,10 +293,10 @@ export default function Chat() {
               ref={scrollRef}
               className="flex grow min-h-0 w-full"
             >
-              <div className="flex flex-col gap-4 p-4 w-full">
-                {displayMessages.map((message) => (
+              <div className="flex flex-col gap-4 p-4 pb-8 w-full">
+                {messages?.map((message) => (
                   <div
-                    key={message.id}
+                    key={message._id}
                     className={`flex w-full ${
                       message.role === "user" ? "justify-end" : "justify-start"
                     }`}
@@ -293,22 +309,30 @@ export default function Chat() {
                       }`}
                     >
                       <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                        {getMessageContent(message.content)}
+                        {message.content}
                       </div>
                     </div>
                   </div>
                 ))}
-                {isStreaming &&
-                  displayMessages[displayMessages.length - 1]?.role !==
-                    "assistant" && (
-                    <div className="flex items-start gap-2">
-                      <div className="bg-background-select rounded-lg p-4">
-                        <div className="font-normal text-base leading-7 text-text-alt">
-                          Thinking...
-                        </div>
+
+                {/* Streaming content bubble */}
+                {streamingContent && (
+                  <div className="flex w-full justify-start">
+                    <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
+                      <div className="font-normal text-base leading-7 whitespace-pre-wrap">
+                        {streamingContent}
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {/* Loading indicator - only show when no streaming content yet */}
+                {isStreaming && !streamingContent && (
+                  <div className="flex items-center gap-2 text-text-alt py-2">
+                    <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm">{getStatusText()}</span>
+                  </div>
+                )}
               </div>
             </ScrollArea.Viewport>
           </ScrollArea.Root>
@@ -323,22 +347,13 @@ export default function Chat() {
               rows={2}
               disabled={isStreaming}
             />
-            {isStreaming ? (
-              <Button
-                onClick={stop}
-                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-medium text-base leading-7 text-white transition-colors"
-              >
-                <StopIcon className="size-5" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className="bg-border-focus hover:bg-border-focus/80 px-4 py-2 rounded-lg font-medium text-base leading-7 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <PaperAirplaneIcon className="size-5" />
-              </Button>
-            )}
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || isStreaming}
+              className="bg-border-focus hover:bg-border-focus/80 px-4 py-2 rounded-lg font-medium text-base leading-7 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <PaperAirplaneIcon className="size-5" />
+            </Button>
           </div>
         </div>
       </SectionCard>
