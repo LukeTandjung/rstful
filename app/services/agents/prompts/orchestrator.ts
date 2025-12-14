@@ -8,31 +8,13 @@ export const ORCHESTRATOR_SEARCH_PROMPT = `You are a scout. Your mission: find c
 
 **Protocol**:
 1. Use the Exa search MCP with the compatibility_string, filtered to the target platform.
-2. Extract creator information from results.
-3. Return a JSON array of creators found.
-
-**Output**:
-{
-  "creators": [
-    {
-      "name": "Display Name",
-      "platform": "x"|"substack"|"blog"|"youtube",
-      "profileUrl": "https://...",
-      "bio": "optional bio if available",
-      "recentContent": [
-        {"title": "optional", "excerpt": "content snippet", "url": "https://..."}
-      ]
-    }
-  ]
-}`;
+2. Extract creator information from search results: name, platform, profile URL, bio (if available), and recent content samples with excerpts.
+3. Return the structured result with all creators found.`;
 
 export const ORCHESTRATOR_FOOTPRINT_PROMPT = `You are a worldview analyst. Generate a chemistry footprint for this content creator based on their bio and recent content.
 
-**Rejection Rules**:
-- If the content is clearly off-topic, low-effort, or spam, output: {"skip": true, "reason": "brief explanation"}
-- Only generate footprints for substantive creators with discernible worldviews.
+**Decision**:
+- If the content is spam, off-topic, or too low-effort to analyze, skip with a brief reason.
+- Otherwise, generate a complete chemistry footprint capturing: epistemic architecture, value hierarchy, cognitive fingerprint, temporal orientation, aspirational vector, affective signature, communication geometry, and edge-vs-center positioning.
 
-**If generating footprint**:
-Output the full chemistry schema as JSON. Match the EXACT structure provided.
-
-**Output**: Either {"skip": true, "reason": "..."} or {"skip": false, "footprint": {...}}.`;
+Analyze the creator's actual content to infer these dimensions—don't guess from surface-level signals.`;
