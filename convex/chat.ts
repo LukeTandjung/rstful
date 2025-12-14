@@ -80,7 +80,9 @@ export const get_messages = query({
   handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("message")
-      .withIndex("by_group_chat_id", (q) => q.eq("group_chat_id", args.group_chat_id))
+      .withIndex("by_group_chat_id", (q) =>
+        q.eq("group_chat_id", args.group_chat_id),
+      )
       .order("asc")
       .collect();
     return messages;
@@ -95,6 +97,12 @@ export const send_message = mutation({
     role: v.union(v.literal("user"), v.literal("assistant")),
   },
   handler: async (ctx, args) => {
+    // Validate that the group_chat exists
+    const groupChat = await ctx.db.get(args.group_chat_id);
+    if (!groupChat) {
+      throw new Error(`Group chat ${args.group_chat_id} does not exist`);
+    }
+
     const messageId = await ctx.db.insert("message", {
       group_chat_id: args.group_chat_id,
       sender_id: args.sender_id,
