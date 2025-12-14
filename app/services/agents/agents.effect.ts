@@ -1,32 +1,34 @@
-import { Effect, Layer, pipe } from "effect";
+import { Effect, Layer, pipe, Schema, JSONSchema } from "effect";
 import type { RunResult } from "dedalus-labs/lib/runner/runner";
 import type { Tool } from "dedalus-labs/lib/runner/types/tools";
-import type {
-  AgentRunOptions,
-  ChemistryCriteria,
+import {
   ParserResult,
-  JudgeResult,
-  ContentCreator,
-  Platform,
-  FootprintResult,
-  Creator,
-  DeepSearchConfig,
-  DeepSearchResult,
-  StoredChemistryCriteria,
+  SearchCreatorsResult,
+  FootprintResult as FootprintResultSchema,
+  JudgeResult as JudgeResultSchema,
+  type AgentRunOptions,
+  type ChemistryCriteria,
+  type JudgeResult,
+  type ContentCreator,
+  type Platform,
+  type FootprintResult,
+  type Creator,
+  type DeepSearchConfig,
+  type DeepSearchResult,
+  type StoredChemistryCriteria,
 } from "./agents.types";
 import {
   DedalusRunnerService,
   AgentRunner,
-  RouterAgent,
   QueryAgent,
   ParserAgent,
   OrchestratorAgent,
   JudgeAgent,
-  DeepXSearchOrchestrator,
+  DeepSearchOrchestrator,
+  type OnSearchStartCallback,
 } from "./agents.service";
 import {
   AgentRunnerError,
-  RouterAgentError,
   QueryAgentError,
   ParserAgentError,
   OrchestratorAgentError,
@@ -34,12 +36,54 @@ import {
   DeepSearchError,
 } from "./agents.errors";
 import {
-  ROUTER_PROMPT,
   PARSER_PROMPT,
   ORCHESTRATOR_SEARCH_PROMPT,
   ORCHESTRATOR_FOOTPRINT_PROMPT,
   JUDGE_PROMPT,
 } from "./prompts";
+
+// Convert Effect's snake_case JSON Schema keys to standard camelCase
+const fixJsonSchemaKeys = (obj: unknown): unknown => {
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(fixJsonSchemaKeys);
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    // Convert snake_case JSON Schema keywords to camelCase
+    const newKey = key === "any_of" ? "anyOf"
+      : key === "one_of" ? "oneOf"
+      : key === "all_of" ? "allOf"
+      : key === "additional_properties" ? "additionalProperties"
+      : key === "min_length" ? "minLength"
+      : key === "max_length" ? "maxLength"
+      : key === "min_items" ? "minItems"
+      : key === "max_items" ? "maxItems"
+      : key;
+    result[newKey] = fixJsonSchemaKeys(value);
+  }
+  return result;
+};
+
+// Wrap Effect's JSON Schema in OpenAI's response_format structure
+const wrapJsonSchema = (schema: unknown, name: string) => {
+  const fixed = fixJsonSchemaKeys(schema) as Record<string, unknown>;
+
+  // Remove $schema as OpenAI doesn't want it
+  delete fixed.$schema;
+
+  // OpenAI requires root schema to have type: "object"
+  // Effect may set type to undefined/null for unions - force it to "object"
+  fixed.type = "object";
+
+  return {
+    type: "json_schema",
+    json_schema: {
+      name,
+      strict: false,
+      schema: fixed,
+    },
+  };
+};
 
 export const AgentRunnerLive = Layer.effect(
   AgentRunner,
@@ -57,6 +101,10 @@ export const AgentRunnerLive = Layer.effect(
               ...(options.systemPrompt && {
                 instructions: options.systemPrompt,
               }),
+              ...(options.responseFormat && {
+                responseFormat: options.responseFormat as unknown as { [key: string]: unknown },
+              }),
+              ...(options.policy && { policy: options.policy }),
             });
             if (Symbol.asyncIterator in result) {
               throw new Error("Streaming not supported in this context");
@@ -77,6 +125,9 @@ export const AgentRunnerLive = Layer.effect(
           ...(options.tools && { tools: options.tools }),
           ...(options.maxSteps && { maxSteps: options.maxSteps }),
           ...(options.systemPrompt && { instructions: options.systemPrompt }),
+          ...(options.responseFormat && {
+            responseFormat: options.responseFormat as unknown as { [key: string]: unknown },
+          }),
           stream: true,
         });
 
@@ -95,40 +146,6 @@ export const AgentRunnerLive = Layer.effect(
   ),
 );
 
-export const RouterAgentLive = Layer.effect(
-  RouterAgent,
-  AgentRunner.pipe(
-    Effect.map(({ run }) => ({
-      route: (input: string) =>
-        pipe(
-          run({
-            input,
-            model: "openai/gpt-4o-mini",
-            systemPrompt: ROUTER_PROMPT,
-          }),
-          Effect.flatMap((result) =>
-            Effect.try({
-              try: () => JSON.parse(result.finalOutput),
-              catch: () =>
-                new RouterAgentError({
-                  message: "Failed to parse router response as JSON",
-                }),
-            }),
-          ),
-          Effect.mapError(
-            (error) =>
-              new RouterAgentError({
-                message:
-                  error instanceof RouterAgentError
-                    ? error.message
-                    : `Router failed: ${error}`,
-              }),
-          ),
-        ),
-    })),
-  ),
-);
-
 export const QueryAgentLive = Layer.effect(
   QueryAgent,
   AgentRunner.pipe(
@@ -139,7 +156,7 @@ export const QueryAgentLive = Layer.effect(
             input: context
               ? `Context: ${context}\n\nQuestion: ${input}`
               : input,
-            model: "anthropic/claude-sonnet-4-5-20250929",
+            model: "openai/gpt-5.1",
             mcpServers: ["joerup/exa-mcp", "simon-liang/brave-search-mcp"],
             ...(tools && { tools }),
             maxSteps: 10,
@@ -156,22 +173,18 @@ export const QueryAgentLive = Layer.effect(
   ),
 );
 
-// Helper to extract JSON from a response that may have surrounding text
-function extractJson(text: string): string {
-  // Try to find JSON in code blocks first
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+// Policy factory: forces "complete" status when user has already answered questions
+const createParserPolicy = (hasAnsweredQuestions: boolean) => () => {
+  if (hasAnsweredQuestions) {
+    return {
+      messagePrepend: [{
+        role: "system",
+        content: `CRITICAL OVERRIDE: The user has already answered your clarifying questions. You MUST return status: "complete" with all fields populated. Do NOT return "needs_clarification" again. Extract the platform, compatibility_string, and chemistry_criteria from their answers NOW.`,
+      }],
+    };
   }
-
-  // Try to find JSON object directly
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return jsonMatch[0];
-  }
-
-  return text;
-}
+  return {};
+};
 
 export const ParserAgentLive = Layer.effect(
   ParserAgent,
@@ -191,8 +204,10 @@ export const ParserAgentLive = Layer.effect(
               conversationHistory.length > 0
                 ? `Conversation so far:\n${conversationHistory.map((m) => `${m.role}: ${m.content}`).join("\n")}\n\nLatest user message: ${input}`
                 : input,
-            model: "anthropic/claude-sonnet-4-5-20250929",
+            model: "openai/gpt-5.1",
             systemPrompt: PARSER_PROMPT,
+            responseFormat: wrapJsonSchema(JSONSchema.make(ParserResult), "parser_result"),
+            policy: createParserPolicy(conversationHistory.length > 0),
             ...(tools && { tools }),
             maxSteps: 5,
           }),
@@ -203,13 +218,10 @@ export const ParserAgentLive = Layer.effect(
           ),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => {
-                const jsonStr = extractJson(result.finalOutput);
-                return JSON.parse(jsonStr) as ParserResult;
-              },
-              catch: () =>
+              try: () => Schema.decodeUnknownSync(ParserResult)(JSON.parse(result.finalOutput)),
+              catch: (error) =>
                 new ParserAgentError({
-                  message: "Failed to parse classifier response as JSON",
+                  message: `Failed to parse/validate response: ${error instanceof Error ? error.message : String(error)}`,
                 }),
             }),
           ),
@@ -246,16 +258,17 @@ export const OrchestratorAgentLive = Layer.effect(
       ) =>
         pipe(
           Effect.sync(() =>
-            console.log(
-              "OrchestratorAgent.searchCreators called with:",
-              { compatibilityString, platform },
-            ),
+            console.log("OrchestratorAgent.searchCreators called with:", {
+              compatibilityString,
+              platform,
+            }),
           ),
           Effect.flatMap(() =>
             run({
               input: `Search for content creators on ${platform} matching: "${compatibilityString}". Find up to ${count} creators. Use filter: ${PLATFORM_SITE_FILTERS[platform]}`,
-              model: "anthropic/claude-sonnet-4-5-20250929",
+              model: "openai/gpt-5.1",
               systemPrompt: ORCHESTRATOR_SEARCH_PROMPT,
+              responseFormat: wrapJsonSchema(JSONSchema.make(SearchCreatorsResult), "search_creators_result"),
               mcpServers: ["joerup/exa-mcp"],
               maxSteps: 5,
             }),
@@ -271,8 +284,8 @@ export const OrchestratorAgentLive = Layer.effect(
           Effect.flatMap((result) =>
             Effect.try({
               try: () => {
-                const parsed = JSON.parse(extractJson(result.finalOutput));
-                return parsed.creators as Array<ContentCreator>;
+                const parsed = Schema.decodeUnknownSync(SearchCreatorsResult)(JSON.parse(result.finalOutput));
+                return [...parsed.creators];
               },
               catch: () =>
                 new OrchestratorAgentError({
@@ -295,12 +308,13 @@ export const OrchestratorAgentLive = Layer.effect(
         pipe(
           run({
             input: `Name: ${creator.name}\nPlatform: ${creator.platform}\nProfile: ${creator.profileUrl}\n${creator.bio ? `Bio: ${creator.bio}\n` : ""}\nRecent Content:\n${creator.recentContent.map((c, i) => `${i + 1}. ${c.title ? `[${c.title}] ` : ""}${c.excerpt}`).join("\n")}`,
-            model: "anthropic/claude-opus-4-5",
+            model: "openai/gpt-5.1",
             systemPrompt: ORCHESTRATOR_FOOTPRINT_PROMPT,
+            responseFormat: wrapJsonSchema(JSONSchema.make(FootprintResultSchema), "footprint_result"),
           }),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => JSON.parse(extractJson(result.finalOutput)) as FootprintResult,
+              try: () => Schema.decodeUnknownSync(FootprintResultSchema)(JSON.parse(result.finalOutput)),
               catch: () =>
                 new OrchestratorAgentError({
                   message: "Failed to parse footprint as JSON",
@@ -334,10 +348,11 @@ export const JudgeAgentLive = Layer.effect(
             input: `User Chemistry Criteria:\n${JSON.stringify(userCriteria, null, 2)}\n\nCandidate Footprint:\n${JSON.stringify(candidateFootprint, null, 2)}`,
             model: "openai/gpt-4o",
             systemPrompt: JUDGE_PROMPT,
+            responseFormat: wrapJsonSchema(JSONSchema.make(JudgeResultSchema), "judge_result"),
           }),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => JSON.parse(result.finalOutput) as JudgeResult,
+              try: () => Schema.decodeUnknownSync(JudgeResultSchema)(JSON.parse(result.finalOutput)),
               catch: () =>
                 new JudgeAgentError({
                   message: "Failed to parse judge response as JSON",
@@ -358,14 +373,19 @@ export const JudgeAgentLive = Layer.effect(
   ),
 );
 
-export const DeepXSearchOrchestratorLive = Layer.effect(
-  DeepXSearchOrchestrator,
+export const DeepSearchOrchestratorLive = Layer.effect(
+  DeepSearchOrchestrator,
   Effect.all([ParserAgent, OrchestratorAgent, JudgeAgent]).pipe(
     Effect.map(([parser, orchestrator, judge]) => ({
       execute: (
         userQuery: string,
         config: DeepSearchConfig,
-        _cachedCriteria?: StoredChemistryCriteria,
+        conversationHistory: Array<{
+          role: "user" | "assistant";
+          content: string;
+        }>,
+        onSearchStart?: OnSearchStartCallback,
+        cachedCriteria?: StoredChemistryCriteria,
       ) => {
         const loop = (
           compatibilityString: string,
@@ -400,12 +420,26 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
                       phase: "searching",
                     }),
                 ),
+                Effect.tap((footprintResults) =>
+                  Effect.sync(() => {
+                    const skipped = footprintResults.filter(
+                      (r) => r.skip,
+                    ).length;
+                    console.log(
+                      `Footprint results: ${footprintResults.length - skipped} valid, ${skipped} skipped`,
+                    );
+                  }),
+                ),
                 Effect.map((footprintResults) =>
                   footprintResults
                     .map((r, i) => ({ result: r, creator: creators[i] }))
                     .filter(
-                      (item): item is { result: { skip: false; footprint: ChemistryCriteria }; creator: ContentCreator } =>
-                        !item.result.skip,
+                      (
+                        item,
+                      ): item is {
+                        result: FootprintResult & { footprint: ChemistryCriteria };
+                        creator: ContentCreator;
+                      } => !item.result.skip && item.result.footprint !== undefined,
                     )
                     .map(({ result, creator }, i) => ({
                       id: `creator-${totalSearched + i}`,
@@ -439,9 +473,22 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
                 ),
               ),
             ),
+            Effect.tap((scoredCreators) =>
+              Effect.sync(() => {
+                console.log("=== Scoring Results ===");
+                scoredCreators.forEach((s) => {
+                  console.log(
+                    `  ${s.user.name}: ${s.score.score}% (${s.score.confidence}) - ${s.score.justification.substring(0, 50)}...`,
+                  );
+                });
+              }),
+            ),
             Effect.flatMap((scoredCreators) => {
               const newQualified = scoredCreators.filter(
                 (s) => s.score.score >= config.scoreThreshold,
+              );
+              console.log(
+                `Qualified this loop: ${newQualified.length}/${scoredCreators.length} (threshold: ${config.scoreThreshold})`,
               );
               const allQualified = [...qualifiedCreators, ...newQualified];
               const newTotalSearched = totalSearched + scoredCreators.length;
@@ -458,6 +505,7 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
                   qualifiedUsers: allQualified,
                   totalSearched: newTotalSearched,
                   loopsExecuted: newLoopCount,
+                  chemistryCriteria,
                 });
               }
 
@@ -467,6 +515,7 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
                   qualifiedUsers: allQualified,
                   totalSearched: newTotalSearched,
                   loopsExecuted: newLoopCount,
+                  chemistryCriteria,
                 });
               }
 
@@ -495,29 +544,60 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
             }),
           );
 
+        // Build input with existing chemistry profile context if available
+        const parserInput = cachedCriteria
+          ? `EXISTING CHEMISTRY PROFILE (use as baseline):\n${JSON.stringify(cachedCriteria.criteria, null, 2)}\n\n---\n\nUser request: ${userQuery}`
+          : userQuery;
+
         return pipe(
-          parser.parse(userQuery, []),
+          parser.parse(parserInput, conversationHistory),
           Effect.mapError(
             (e) =>
               new DeepSearchError({ message: e.message, phase: "parsing" }),
           ),
           Effect.flatMap((parserResult) => {
-            if (parserResult.status === "needs_clarification") {
+            // Deterministic logic: only allow clarification on FIRST interaction
+            // If conversation history exists, user already answered - force complete
+            const alreadyAskedQuestions = conversationHistory.length > 0;
+
+            if (parserResult.status.includes("clarification") && !alreadyAskedQuestions) {
+              return Effect.succeed({
+                status: "needs_clarification" as const,
+                questions: parserResult.questions ?? [],
+              });
+            }
+
+            // Either status is "complete" OR we're forcing complete because user already answered
+            const { compatibility_string, platform, chemistry_criteria } = parserResult;
+            if (!compatibility_string || !platform || !chemistry_criteria) {
+              // If LLM still didn't provide fields after user answered, that's an error
               return Effect.fail(
                 new DeepSearchError({
-                  message: `Clarification needed:\n${parserResult.questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`,
+                  message: alreadyAskedQuestions
+                    ? "Parser failed to extract required fields from user's answers"
+                    : "Parser returned complete status but missing required fields",
                   phase: "parsing",
                 }),
               );
             }
-            return loop(
-              parserResult.compatibility_string,
-              parserResult.platform,
-              parserResult.chemistry_criteria,
-              0,
-              0,
-              [],
-              0,
+            // Emit acknowledgment before starting search
+            return pipe(
+              Effect.promise(async () => {
+                await onSearchStart?.(
+                  "Got it! I'll start searching for creators that match your criteria. This may take a minute — feel free to leave this chat and check back later for results.",
+                );
+              }),
+              Effect.flatMap(() =>
+                loop(
+                  compatibility_string,
+                  platform,
+                  chemistry_criteria,
+                  0,
+                  0,
+                  [],
+                  0,
+                ),
+              ),
             );
           }),
         );
@@ -528,10 +608,9 @@ export const DeepXSearchOrchestratorLive = Layer.effect(
 
 export const AllAgentsLive = pipe(
   AgentRunnerLive,
-  Layer.provideMerge(RouterAgentLive),
   Layer.provideMerge(QueryAgentLive),
   Layer.provideMerge(ParserAgentLive),
   Layer.provideMerge(OrchestratorAgentLive),
   Layer.provideMerge(JudgeAgentLive),
-  Layer.provideMerge(DeepXSearchOrchestratorLive),
+  Layer.provideMerge(DeepSearchOrchestratorLive),
 );

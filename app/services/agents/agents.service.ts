@@ -16,7 +16,6 @@ import type {
 } from "./agents.types";
 import {
   AgentRunnerError,
-  RouterAgentError,
   QueryAgentError,
   ParserAgentError,
   OrchestratorAgentError,
@@ -40,18 +39,6 @@ export class AgentRunner extends Context.Tag("AgentRunner")<
     readonly runStream: (
       options: AgentRunOptions
     ) => AsyncIterable<unknown>;
-  }
->() {}
-
-export class RouterAgent extends Context.Tag("RouterAgent")<
-  RouterAgent,
-  {
-    readonly route: (
-      input: string
-    ) => Effect.Effect<
-      { intent: "simple_query" | "web_search" | "deep_search"; confidence: number },
-      RouterAgentError
-    >;
   }
 >() {}
 
@@ -101,12 +88,16 @@ export class JudgeAgent extends Context.Tag("JudgeAgent")<
   }
 >() {}
 
-export class DeepXSearchOrchestrator extends Context.Tag("DeepXSearchOrchestrator")<
-  DeepXSearchOrchestrator,
+export type OnSearchStartCallback = (acknowledgment: string) => void | Promise<void>;
+
+export class DeepSearchOrchestrator extends Context.Tag("DeepSearchOrchestrator")<
+  DeepSearchOrchestrator,
   {
     readonly execute: (
       userQuery: string,
       config: DeepSearchConfig,
+      conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
+      onSearchStart?: OnSearchStartCallback,
       cachedCriteria?: StoredChemistryCriteria
     ) => Effect.Effect<DeepSearchResult, DeepSearchError>;
   }

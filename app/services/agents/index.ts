@@ -24,7 +24,6 @@ export {
 
 export {
   AgentRunnerError,
-  RouterAgentError,
   QueryAgentError,
   ParserAgentError,
   OrchestratorAgentError,
@@ -35,21 +34,20 @@ export {
 export {
   DedalusRunnerService,
   AgentRunner,
-  RouterAgent,
   QueryAgent,
   ParserAgent,
   OrchestratorAgent,
   JudgeAgent,
-  DeepXSearchOrchestrator,
+  DeepSearchOrchestrator,
+  type OnSearchStartCallback,
 } from "./agents.service";
 
 export {
   AgentRunnerLive,
-  RouterAgentLive,
   QueryAgentLive,
   ParserAgentLive,
   OrchestratorAgentLive,
   JudgeAgentLive,
-  DeepXSearchOrchestratorLive,
+  DeepSearchOrchestratorLive,
   AllAgentsLive,
 } from "./agents.effect";

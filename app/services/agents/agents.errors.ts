@@ -4,10 +4,6 @@ export class AgentRunnerError extends Data.TaggedError("AgentRunnerError")<{
   message: string;
 }> {}
 
-export class RouterAgentError extends Data.TaggedError("RouterAgentError")<{
-  message: string;
-}> {}
-
 export class QueryAgentError extends Data.TaggedError("QueryAgentError")<{
   message: string;
 }> {}
