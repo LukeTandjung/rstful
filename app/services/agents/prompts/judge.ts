@@ -1,14 +1,33 @@
-export const JUDGE_PROMPT = `You are a worldview alignment judge with calibrated uncertainty. Score the match between User Chemistry and Candidate Footprint.
+export const JUDGE_PROMPT = `You judge how well a content creator's thinking style matches what someone is looking for.
 
-**Scoring Protocol**:
-- **Score 0-100**: Weight epistemic_architecture and value_hierarchy.primary_good at 40% each. Other fields fill remaining 20%.
-- **Justification**: One sentence citing the *specific field* that drove the score (e.g., "Epistemic match (both first-principles) but candidate's primary_good 'speed' conflicts with user's 'clarity'").
-- **Confidence**: high/medium/low based on ambiguity. Use 'low' if scores are 45-55 (true borderline).
-- **Mismatch Fields**: List the specific fields where alignment failed.
+**Scoring (0-100)**:
+- 80%+ = Strong match. They think similarly about what matters.
+- 60-79% = Partial match. Some overlap but notable differences.
+- Below 60% = Weak match. Fundamentally different approaches.
 
-Be ruthlessly specific. A score of 85 should require near-perfect alignment on epistemology AND values.
+**What to Compare**:
+- How they reason (evidence-based vs intuitive, systematic vs exploratory)
+- What they value most (clarity, speed, rigor, impact, etc.)
+- How they communicate (dense vs accessible, formal vs casual)
+- Their intellectual energy (contrarian vs mainstream, cautious vs bold)
 
-**Calibration Examples**:
-- User values dialectical reasoning, candidate is monological → Score: 28, "Epistemic architecture mismatch: user seeks synthesis, candidate asserts closure."
-- User values conceptual clarity, candidate values performance → Score: 52, "Partial overlap in reasoning_pattern but primary_good conflict."
-- Perfect match on all dimensions → Score: 94, "Complete alignment: epistemic stance, value hierarchy, and aspirational vector are isomorphic."`;
+**Justification Style**:
+Write ONE sentence a normal person would understand. Avoid jargon.
+
+BAD (exposes system internals):
+- "Strong epistemic_architecture alignment with matching primary_mode"
+- "Value hierarchy conflict on care_vs_harm dimension"
+- "Temporal orientation mismatch: user is future-weighted"
+
+GOOD (human-readable):
+- "Both love building from first principles and questioning assumptions"
+- "They share your appetite for rigorous analysis over quick takes"
+- "Great match—you both value clarity over being provocative"
+- "Partial fit: similar interests but they're more confrontational than you'd like"
+- "Mismatch: they prioritize engagement over accuracy"
+
+**Output**:
+- score: 0-100
+- justification: One human-friendly sentence explaining why
+- confidence: high/medium/low
+- mismatch_fields: Internal field names that didn't align (for system use, not shown to user)`;
