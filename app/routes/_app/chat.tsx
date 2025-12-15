@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Route } from "./+types/chat";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import {
@@ -13,6 +13,34 @@ import { Button } from "@base-ui-components/react/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+
+// localStorage helpers for persisting search state across page switches
+const SEARCH_STATE_KEY = "deep_search_state";
+
+interface SearchState {
+  chatId: string;
+  status: "thinking" | "searching";
+  startedAt: number;
+  messageCountAtStart: number;
+}
+
+const saveSearchState = (state: SearchState) => {
+  localStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(state));
+};
+
+const getSearchState = (): SearchState | null => {
+  const stored = localStorage.getItem(SEARCH_STATE_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+};
+
+const clearSearchState = () => {
+  localStorage.removeItem(SEARCH_STATE_KEY);
+};
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -81,6 +109,12 @@ export default function Chat() {
     await deleteConversation({ group_chat_id: id });
     if (chatId === id) {
       setChatId(null);
+      // Reset streaming state when deleting current chat
+      setStreamStatus("idle");
+      setStreamingContent("");
+      clearSearchState();
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
     }
   };
 
@@ -115,11 +149,31 @@ export default function Chat() {
       setStreamStatus("thinking");
       abortControllerRef.current = new AbortController();
 
+      // Save search state to localStorage for deep search (persists across page switches)
+      if (effectiveMode === "deep_search") {
+        saveSearchState({
+          chatId: currentChatId,
+          status: "thinking",
+          startedAt: Date.now(),
+          messageCountAtStart: (messages?.length || 0) + 1, // +1 for the user message we just sent
+        });
+      }
+
+      // Build full conversation history for the API
+      const existingMessages = (messages || []).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const fullMessages = [
+        ...existingMessages,
+        { role: "user", content: userInput },
+      ];
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: userInput }],
+          messages: fullMessages,
           user_id: viewer._id,
           chat_id: currentChatId,
           mode: effectiveMode,
@@ -155,7 +209,15 @@ export default function Chat() {
                 const event = JSON.parse(data);
 
                 if (event.type === "status") {
-                  setStreamStatus(event.status as StreamStatus);
+                  const newStatus = event.status as StreamStatus;
+                  setStreamStatus(newStatus);
+                  // Update localStorage when status changes to searching
+                  if (newStatus === "searching" && effectiveMode === "deep_search") {
+                    const savedState = getSearchState();
+                    if (savedState) {
+                      saveSearchState({ ...savedState, status: "searching" });
+                    }
+                  }
                 } else if (event.type === "text" && event.content) {
                   setStreamingContent((prev) => prev + event.content);
                 }
@@ -176,9 +238,50 @@ export default function Chat() {
     } finally {
       setStreamStatus("idle");
       setStreamingContent("");
+      clearSearchState();
       abortControllerRef.current = null;
     }
   };
+
+  // Restore search state from localStorage on mount/chat change
+  // Only runs when NOT actively streaming (restoration logic, not live updates)
+  useEffect(() => {
+    // Skip if we're actively streaming - don't interfere with live state
+    if (abortControllerRef.current) {
+      return;
+    }
+
+    const savedState = getSearchState();
+
+    // If there's a saved search for a different chat, don't show spinner here
+    if (savedState && savedState.chatId !== chatId) {
+      setStreamStatus("idle");
+      return;
+    }
+
+    if (savedState && savedState.chatId === chatId) {
+      // Timeout after 10 minutes - search probably failed
+      const tenMinutes = 10 * 60 * 1000;
+      if (Date.now() - savedState.startedAt > tenMinutes) {
+        clearSearchState();
+        setStreamStatus("idle");
+        return;
+      }
+
+      // Check if search is still in progress (no new messages since start)
+      // Account for acknowledgment message (+1) in deep search
+      const expectedMessagesBeforeResult = savedState.messageCountAtStart + 1;
+      const currentMessageCount = messages?.length || 0;
+      if (currentMessageCount <= expectedMessagesBeforeResult) {
+        // Search still in progress - restore the spinner
+        setStreamStatus("searching");
+      } else {
+        // Final results arrived - search completed, clear state
+        clearSearchState();
+        setStreamStatus("idle");
+      }
+    }
+  }, [chatId, messages?.length]);
 
   // Auto-scroll when messages or streaming content changes
   useEffect(() => {
@@ -315,19 +418,23 @@ export default function Chat() {
                   </div>
                 ))}
 
-                {/* Streaming content bubble */}
-                {streamingContent && (
-                  <div className="flex w-full justify-start">
-                    <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
-                      <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                        {streamingContent}
+                {/* Streaming content bubble - only show if not already saved to DB */}
+                {streamingContent && (() => {
+                  const lastAssistantMsg = messages?.filter(m => m.role === "assistant").slice(-1)[0];
+                  const alreadySaved = lastAssistantMsg?.content === streamingContent.trim();
+                  return !alreadySaved ? (
+                    <div className="flex w-full justify-start">
+                      <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
+                        <div className="font-normal text-base leading-7 whitespace-pre-wrap">
+                          {streamingContent}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
 
-                {/* Loading indicator - only show when no streaming content yet */}
-                {isStreaming && !streamingContent && (
+                {/* Loading indicator - show during searching phase, or when waiting for content */}
+                {isStreaming && (streamStatus === "searching" || !streamingContent) && (
                   <div className="flex items-center gap-2 text-text-alt py-2">
                     <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm">{getStatusText()}</span>

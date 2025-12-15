@@ -244,6 +244,8 @@ export async function action({ request }: ActionFunctionArgs) {
             }
           }
 
+          // Switch to generating status before streaming final results
+          emitStatus("generating");
           await streamText(responseText);
           // Save final result as assistant message
           if (chatId && userId) {
@@ -313,44 +315,37 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
-  const stream = agentRunner.runStream({
-    input: finalInput,
-    model: "anthropic/claude-sonnet-4-5-20250929",
-    ...(mcpServers.length > 0 && { mcpServers }),
-    maxSteps: 10,
-    systemPrompt:
-      "You are a helpful assistant. Use the available search tools when you need to find information online or fetch full article content.",
-  });
+  const result = await Effect.runPromise(
+    agentRunner.run({
+      input: finalInput,
+      model: "openai/gpt-5.1",
+      ...(mcpServers.length > 0 && { mcpServers }),
+      maxSteps: 10,
+      systemPrompt:
+        "You are a helpful assistant that answers questions about the user's saved articles.",
+    }),
+  );
+
+  // Convert to fake stream for compatibility with existing frontend
+  const responseText = result.finalOutput || "No response generated";
 
   const encoder = new TextEncoder();
-  let accumulatedContent = "";
-
   const readableStream = new ReadableStream({
     async start(controller) {
-      try {
-        // Emit initial status
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", status: "generating" })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", status: "generating" })}\n\n`));
 
-        for await (const chunk of stream) {
-          const data = JSON.stringify(chunk);
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+      // Stream word by word for better UX
+      const words = responseText.split(/(\s+)/);
+      for (const word of words) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", content: word })}\n\n`));
+      }
 
-          // Accumulate text content from the chunk
-          const chunkData = chunk as { type?: string; content?: string };
-          if (chunkData.type === "text" && chunkData.content) {
-            accumulatedContent += chunkData.content;
-          }
-        }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
 
-        // Save accumulated assistant message to database
-        if (chatId && userId && accumulatedContent) {
-          await saveAssistantMessage(chatId, userId, accumulatedContent);
-        }
-      } catch (error) {
-        console.error("Stream error:", error);
-        controller.error(error);
+      // Save to database
+      if (chatId && userId) {
+        await saveAssistantMessage(chatId, userId, responseText);
       }
     },
   });
