@@ -1,6 +1,7 @@
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import type { Doc } from "convex/_generated/dataModel";
+import { highlighter } from "services/highlighter";
 
 interface ArticleReaderProps {
   article: Doc<"cached_content"> | Doc<"saved_content"> | null;
@@ -8,6 +9,8 @@ interface ArticleReaderProps {
 }
 
 export function ArticleReader({ article, onToggleStar }: ArticleReaderProps) {
+  const hl = highlighter()
+
   if (!article) {
     return (
       <div className="flex items-center justify-center h-full w-full">
@@ -29,9 +32,10 @@ export function ArticleReader({ article, onToggleStar }: ArticleReaderProps) {
 
           <button
             onClick={() => onToggleStar?.(article._id)}
-            className="shrink-0 p-2 hover:bg-background-select rounded"
+            style={{ "--hl-star": hl.bg } as React.CSSProperties}
+            className="shrink-0 p-2 rounded"
           >
-            <StarIconOutline className="size-6 text-text-alt" />
+            <StarIconOutline className="size-6 text-text-alt hover:text-(--hl-star)" />
           </button>
         </div>
 

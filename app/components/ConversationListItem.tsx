@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/16/solid";
 import type { Id } from "convex/_generated/dataModel";
 import { DeleteConfirmDialog } from "./RemoveFeedDialog";
+import { highlighter } from "services/highlighter";
 
 type ChatMode = "regular" | "deep_search" | "user";
 
@@ -34,12 +35,15 @@ export function ConversationListItem({
 }: ConversationListItemProps) {
   const ModeIcon = modeIcons[mode];
 
+  const hl = highlighter()
+
   return (
     <div
+      style={{ '--hl-bg': hl.bg, '--hl-text': hl.text } as React.CSSProperties}
       className={`group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${
         isSelected
-          ? "bg-background-select text-text"
-          : "text-text-alt hover:bg-background hover:text-text"
+          ? "bg-(--hl-bg) text-(--hl-text)"
+          : "text-text-alt hover:bg-(--hl-bg) hover:text-(--hl-text)"
       }`}
       onClick={() => onSelect(id)}
     >

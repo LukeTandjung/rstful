@@ -7,6 +7,7 @@ import * as React from "react";
 import { Effect } from "effect";
 import { AuthService, Email } from "services/auth";
 import { appRuntime } from "services/runtime";
+import { highlighter } from "services/highlighter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -18,6 +19,7 @@ export function meta({}: Route.MetaArgs) {
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [error, setError] = React.useState<string | null>(null);
+  const hlButton = highlighter();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,7 +71,7 @@ export default function VerifyEmail() {
       <div className="flex flex-col justify-center w-full lg:w-1/2 bg-background px-8 py-12 sm:px-12 lg:px-16">
         <div className="mx-auto w-full max-w-md">
           <div className="mb-8">
-            <h1 className="font-bold text-3xl leading-9 text-text mb-2">
+            <h1 className="font-bold text-3xl leading-9 text-text font-header mb-2">
               Verify your email
             </h1>
             <p className="font-normal text-base leading-6 text-text-alt">
@@ -98,7 +100,13 @@ export default function VerifyEmail() {
 
             <Button
               type="submit"
-              className="w-full bg-border-focus hover:bg-border-focus/80 px-4 py-3 rounded-lg font-medium text-base leading-6 text-text transition-colors mt-2"
+              style={
+                {
+                  "--hl-bg": hlButton.bg,
+                  "--hl-text": hlButton.text,
+                } as React.CSSProperties
+              }
+              className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2"
             >
               Verify Email
             </Button>

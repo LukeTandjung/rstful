@@ -4,6 +4,7 @@ import {
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/16/solid";
+import { highlighter } from "services/highlighter";
 
 export type ChatMode = "regular" | "deep_search";
 
@@ -13,6 +14,9 @@ interface ChatModeToggleProps {
 }
 
 export function ChatModeToggle({ mode, onModeChange }: ChatModeToggleProps) {
+  const hlRegular = highlighter()
+  const hlDeepSearch = highlighter()
+
   return (
     <ToggleGroup
       value={[mode]}
@@ -26,14 +30,16 @@ export function ChatModeToggle({ mode, onModeChange }: ChatModeToggleProps) {
     >
       <Toggle
         value="regular"
-        className="flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm leading-5 text-text-alt transition-colors data-pressed:bg-background-select data-pressed:text-text"
+        style={{ '--hl-bg': hlRegular.bg, '--hl-text': hlRegular.text } as React.CSSProperties}
+        className="flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm leading-5 text-text-alt transition-colors data-pressed:bg-(--hl-bg) data-pressed:text-(--hl-text)"
       >
         <ChatBubbleLeftRightIcon className="size-4" />
         Article Chat
       </Toggle>
       <Toggle
         value="deep_search"
-        className="flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm leading-5 text-text-alt transition-colors data-pressed:bg-background-select data-pressed:text-text"
+        style={{ '--hl-bg': hlDeepSearch.bg, '--hl-text': hlDeepSearch.text } as React.CSSProperties}
+        className="flex items-center gap-2 px-3 py-2 rounded-md font-medium text-sm leading-5 text-text-alt transition-colors data-pressed:bg-(--hl-bg) data-pressed:text-(--hl-text)"
       >
         <MagnifyingGlassIcon className="size-4" />Deep Search
       </Toggle>

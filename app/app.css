@@ -2,32 +2,42 @@
 
 @theme {
   /* Fonts */
-  --font-sans: "Inconsolata", monospace;
+  --font-sans: "JetBrains Mono", monospace;
+  --font-header: "IBM Plex Serif", serif;
 
-  /* Kanagawa colour palette */
+  /* Kanagawa Light colour palette */
   --color-*: initial;
-  --color-background: #1f1f28;
-  --color-background-alt: #16161d;
-  --color-background-select: #223249;
-  --color-text: #dcd7ba;
-  --color-text-alt: #727169;
-  --color-border-focus: #7e9cd8;
-  --color-border-unfocus: #54546d;
-  --color-ok: #76946a;
-  --color-urgent: #c0a36e;
-  --color-warning: #ffa066;
-  --color-error: #c34043;
+  --color-background: #f2eede;
+  --color-background-alt: #f7f3e3;
+  --color-background-select: var(--highlighter-color, #E6C384);
+  --color-text: #555555;
+  --color-text-alt: #777777;
+  --color-border-focus: var(--highlighter-border, #555555);
+  --color-border-unfocus: #716E61;
+  --color-ok: #6F894E;
+  --color-urgent: #CC6D00;
+  --color-warning: #77713F;
+  --color-error: #C84053;
 
-  /* Custom Font Size (not in base Tailwind) */
-  --font-size-xxs: 10px;
+  /* Highlighter colors (Kanagawa palette) */
+  --color-highlighter-yellow: #E6C384;   /* carpYellow */
+  --color-highlighter-pink: #D27E99;     /* sakuraPink */
+  --color-highlighter-blue: #A3D4D5;     /* lightBlue */
+  --color-highlighter-purple: #938AA9;   /* springViolet1 */
+  --color-highlighter-teal: #7AA89F;     /* waveAqua2 */
+  --color-highlighter-sky: #7FB4CA;      /* springBlue */
+
 }
 
 html,
 body {
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+  @media (prefers-color-scheme: light) {
+    color-scheme: light;
   }
-  background:
-    linear-gradient(0deg, rgba(31, 31, 40, 0.5) 0%, rgba(31, 31, 40, 0.5) 100%),
-    url("/assets/banner.png") center / cover no-repeat fixed;
+  background: url("/assets/background_image.png") center / cover no-repeat fixed;
+  
+  background-size: cover;
+  background-attachment: fixed;
+  @apply min-h-dvh;
 }
+

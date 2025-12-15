@@ -2,6 +2,7 @@ import { Toggle } from "@base-ui-components/react/toggle";
 import { StarIcon as StarIconSolid } from "@heroicons/react/16/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import type { Doc } from "convex/_generated/dataModel";
+import { highlighter } from "services/highlighter";
 
 interface ArticleListItemProps {
   article: Doc<"cached_content"> | Doc<"saved_content">;
@@ -20,6 +21,9 @@ export function ArticleListItem({
   isStarred = false,
   feedName = "Unknown Feed",
 }: ArticleListItemProps) {
+  const hlItem = highlighter();
+  const hlStar = highlighter();
+
   const formatDate = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - new Date(date).getTime();
@@ -34,8 +38,16 @@ export function ArticleListItem({
 
   return (
     <div
+      style={
+        {
+          "--hl-bg": hlItem.bg,
+          "--hl-text": hlItem.text,
+        } as React.CSSProperties
+      }
       className={`border border-border-unfocus border-solid flex flex-col gap-2 p-3.5 rounded-lg w-full cursor-pointer transition-colors ${
-        isSelected ? "bg-background-select" : "hover:bg-background-alt"
+        isSelected
+          ? "bg-(--hl-bg) text-(--hl-text)"
+          : "hover:bg-(--hl-bg) hover:text-(--hl-text)"
       } ${!article.is_read ? "border-border-focus" : ""}`}
       onClick={() => onSelect?.(article)}
     >
@@ -53,7 +65,7 @@ export function ArticleListItem({
             {formatDate(
               article.pub_date
                 ? new Date(Number(article.pub_date))
-                : new Date(article._creationTime)
+                : new Date(article._creationTime),
             )}
             {article.author && ` • ${article.author}`}
           </div>
@@ -63,7 +75,8 @@ export function ArticleListItem({
           pressed={isStarred}
           onPressedChange={() => onToggleStar?.(article._id)}
           aria-label="Star article"
-          className="shrink-0 p-1 hover:bg-background-select rounded"
+          style={{ "--hl-star": hlStar.bg } as React.CSSProperties}
+          className="shrink-0 p-1 rounded"
           render={(props, state) => (
             <button
               type="button"
@@ -74,9 +87,9 @@ export function ArticleListItem({
               }}
             >
               {state.pressed ? (
-                <StarIconSolid className="size-5 text-text" />
+                <StarIconSolid className="size-5 text-(--hl-star)" />
               ) : (
-                <StarIconOutline className="size-5 text-text-alt" />
+                <StarIconOutline className="size-5 text-text-alt hover:text-(--hl-star)" />
               )}
             </button>
           )}

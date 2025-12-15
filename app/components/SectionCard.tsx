@@ -18,7 +18,7 @@ export function SectionCard({
   return (
     <div className={`bg-background-alt flex flex-col gap-3.5 p-6 rounded-lg w-full ${className}`}>
       <div className="flex flex-col gap-2.5">
-        <div className="flex gap-2.5 items-center font-medium text-xl leading-8 text-text">
+        <div className="flex gap-2.5 items-center font-medium text-xl leading-8 text-text font-header">
           {icon}
           {title}
         </div>

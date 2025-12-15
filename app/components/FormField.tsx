@@ -43,7 +43,7 @@ export function FormField({
           render={multiline ? <textarea rows={3} /> : <input type={inputType} />}
           placeholder={placeholder}
           defaultValue={defaultValue}
-          className={`bg-background-select px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt w-full ${multiline ? "resize-none" : ""} ${isPasswordField ? "pr-10" : ""}`}
+          className={`bg-background-alt border border-border-unfocus px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt w-full ${multiline ? "resize-none" : ""} ${isPasswordField ? "pr-10" : ""}`}
         />
         {isPasswordField && (
           <Toggle

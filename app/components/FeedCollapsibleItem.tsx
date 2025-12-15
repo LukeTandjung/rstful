@@ -6,6 +6,7 @@ import type { RssFeed } from "types";
 import type { Id } from "convex/_generated/dataModel";
 import { EditFeedDialog } from "./EditFeedDialog";
 import { DeleteConfirmDialog } from "./RemoveFeedDialog";
+import { highlighter } from "services/highlighter";
 
 interface FeedCollapsibleItemProps {
   feed: RssFeed;
@@ -23,6 +24,7 @@ export function FeedCollapsibleItem({
   onRemove,
 }: FeedCollapsibleItemProps) {
   const [open, setOpen] = useState(false);
+  const hlUnread = highlighter();
 
   return (
     <Collapsible.Root
@@ -34,7 +36,10 @@ export function FeedCollapsibleItem({
         <div className="flex items-center gap-2.5">
           <span>{feed.name}</span>
           {unreadCount > 0 && (
-            <span className="bg-border-focus px-2 py-0.5 rounded text-sm">
+            <span
+              style={{ "--hl-bg": hlUnread.bg, "--hl-text": hlUnread.text } as React.CSSProperties}
+              className="bg-(--hl-bg) text-(--hl-text) px-2 py-0.5 rounded text-sm"
+            >
               {unreadCount}
             </span>
           )}

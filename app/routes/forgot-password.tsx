@@ -7,6 +7,7 @@ import * as React from "react";
 import { Effect } from "effect";
 import { AuthService, Email } from "services/auth";
 import { appRuntime } from "services/runtime";
+import { highlighter } from "services/highlighter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -18,6 +19,8 @@ export function meta({}: Route.MetaArgs) {
 export default function ForgotPassword() {
   const [emailSent, setEmailSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const hlButton = highlighter();
+  const hlBackToLogin = highlighter();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,7 +71,7 @@ export default function ForgotPassword() {
           {!emailSent ? (
             <>
               <div className="mb-8">
-                <h1 className="font-bold text-3xl leading-9 text-text mb-2">
+                <h1 className="font-bold text-3xl leading-9 text-text font-header mb-2">
                   Forgot password?
                 </h1>
                 <p className="font-normal text-base leading-6 text-text-alt">
@@ -92,7 +95,13 @@ export default function ForgotPassword() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-border-focus hover:bg-border-focus/80 px-4 py-3 rounded-lg font-medium text-base leading-6 text-text transition-colors mt-2"
+                  style={
+                    {
+                      "--hl-bg": hlButton.bg,
+                      "--hl-text": hlButton.text,
+                    } as React.CSSProperties
+                  }
+                  className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2"
                 >
                   Send reset link
                 </Button>
@@ -128,7 +137,7 @@ export default function ForgotPassword() {
                     />
                   </svg>
                 </div>
-                <h1 className="font-bold text-3xl leading-9 text-text mb-2">
+                <h1 className="font-bold text-3xl leading-9 text-text font-header mb-2">
                   Check your email
                 </h1>
                 <p className="font-normal text-base leading-6 text-text-alt">
@@ -150,7 +159,13 @@ export default function ForgotPassword() {
 
                 <Link
                   to="/login"
-                  className="text-center w-full bg-background-select hover:bg-background-alt px-4 py-3 rounded-lg font-medium text-base leading-6 text-text transition-colors"
+                  style={
+                    {
+                      "--hl-bg": hlBackToLogin.bg,
+                      "--hl-text": hlBackToLogin.text,
+                    } as React.CSSProperties
+                  }
+                  className="text-center w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors block"
                 >
                   Back to login
                 </Link>

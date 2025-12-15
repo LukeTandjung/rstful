@@ -11,6 +11,7 @@ import { appRuntime } from "services/runtime";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { downloadOpml, parseOpml, readOpmlFile } from "services/opml";
+import { highlighter } from "services/highlighter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -25,6 +26,11 @@ export function meta({}: Route.MetaArgs) {
 export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const hlBuyTokens = highlighter()
+  const hlExport = highlighter()
+  const hlImport = highlighter()
+  const hlLogout = highlighter()
 
   const viewer = useQuery(api.auth.currentUser);
   const feeds = useQuery(
@@ -133,7 +139,10 @@ export default function Settings() {
                   />
 
                   <div className="flex items-center gap-4">
-                    <Button className="bg-border-focus hover:bg-border-focus/80 px-4 py-2 rounded-lg font-medium text-base leading-7 text-text transition-colors">
+                    <Button
+                      style={{ '--hl-bg': hlBuyTokens.bg, '--hl-text': hlBuyTokens.text } as React.CSSProperties}
+                      className="bg-(--hl-bg) text-(--hl-text) px-4 py-2 rounded-lg font-medium text-base leading-7 transition-colors"
+                    >
                       Buy More Tokens
                     </Button>
                     <p className="font-normal text-sm leading-6 text-text-alt">
@@ -167,7 +176,8 @@ export default function Settings() {
                     </div>
                     <Button
                       onClick={handleExport}
-                      className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
+                      style={{ '--hl-bg': hlExport.bg, '--hl-text': hlExport.text } as React.CSSProperties}
+                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
                     >
                       Export
                     </Button>
@@ -184,7 +194,8 @@ export default function Settings() {
                     </div>
                     <Button
                       onClick={handleImportClick}
-                      className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
+                      style={{ '--hl-bg': hlImport.bg, '--hl-text': hlImport.text } as React.CSSProperties}
+                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
                     >
                       Import
                     </Button>
@@ -222,7 +233,8 @@ export default function Settings() {
                     </div>
                     <Button
                       onClick={handleLogout}
-                      className="px-4 py-2 rounded-lg bg-background-select hover:bg-border-focus/10 text-text font-medium text-sm transition-colors"
+                      style={{ '--hl-bg': hlLogout.bg, '--hl-text': hlLogout.text } as React.CSSProperties}
+                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
                     >
                       Logout
                     </Button>

@@ -3,6 +3,7 @@ import { Dialog } from "@base-ui-components/react/dialog";
 import { FormField } from "./FormField";
 import { CustomSelect } from "./CustomSelect";
 import type { ReactNode } from "react";
+import { highlighter } from "services/highlighter";
 
 interface AddFeedDialogProps {
   trigger: ReactNode;
@@ -11,6 +12,7 @@ interface AddFeedDialogProps {
 
 export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
   const [open, setOpen] = useState(false);
+  const hl = highlighter();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,7 +29,10 @@ export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className="bg-background-select px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text w-fit">
+      <Dialog.Trigger
+        style={{ "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties}
+        className="bg-(--hl-bg) text-(--hl-text) px-3 py-2 rounded-lg font-medium text-lg leading-7 w-fit"
+      >
         {trigger}
       </Dialog.Trigger>
 

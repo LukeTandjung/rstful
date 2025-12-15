@@ -1,4 +1,5 @@
 import { Progress } from "@base-ui-components/react/progress";
+import { highlighter } from "services/highlighter";
 
 interface TokenProgressProps {
   label: string;
@@ -13,6 +14,7 @@ export function TokenProgress({
   max,
   period = "this month",
 }: TokenProgressProps) {
+  const hl = highlighter()
   const percentage = (current / max) * 100;
 
   return (
@@ -29,10 +31,10 @@ export function TokenProgress({
         {() => `${current}/${max} (${period})`}
       </Progress.Value>
 
-      <Progress.Track className="[grid-area:2/1/auto/span_2] bg-border-unfocus flex rounded-md h-1">
+      <Progress.Track className="[grid-area:2/1/auto/span_2] bg-background-alt flex rounded-md h-1">
         <Progress.Indicator
-          className="bg-border-focus h-1 rounded-md"
-          style={{ width: `${percentage}%` }}
+          style={{ '--hl-bg': hl.bg, width: `${percentage}%` } as React.CSSProperties}
+          className="bg-(--hl-bg) h-1 rounded-md"
         />
       </Progress.Track>
     </Progress.Root>

@@ -13,6 +13,7 @@ import { Button } from "@base-ui-components/react/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { highlighter } from "services/highlighter";
 
 // localStorage helpers for persisting search state across page switches
 const SEARCH_STATE_KEY = "deep_search_state";
@@ -61,6 +62,9 @@ export default function Chat() {
   const [streamingContent, setStreamingContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const hlNewConversation = highlighter();
+  const hlSendChat = highlighter();
 
   const [chatId, setChatId] = useState<Id<"group_chat"> | null>(null);
 
@@ -212,7 +216,10 @@ export default function Chat() {
                   const newStatus = event.status as StreamStatus;
                   setStreamStatus(newStatus);
                   // Update localStorage when status changes to searching
-                  if (newStatus === "searching" && effectiveMode === "deep_search") {
+                  if (
+                    newStatus === "searching" &&
+                    effectiveMode === "deep_search"
+                  ) {
                     const savedState = getSearchState();
                     if (savedState) {
                       saveSearchState({ ...savedState, status: "searching" });
@@ -371,7 +378,13 @@ export default function Chat() {
             <Button
               onClick={handleNewConversation}
               disabled={!viewer?._id}
-              className="flex items-center justify-center gap-2 bg-background-select px-3 py-2 rounded-lg font-medium text-sm leading-5 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={
+                {
+                  "--hl-bg": hlNewConversation.bg,
+                  "--hl-text": hlNewConversation.text,
+                } as React.CSSProperties
+              }
+              className="flex items-center justify-center gap-2 bg-(--hl-bg) text-(--hl-text) px-3 py-2 rounded-lg font-medium text-sm leading-5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <PlusIcon className="size-4" />
               New Conversation
@@ -404,13 +417,7 @@ export default function Chat() {
                       message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-4 ${
-                        message.role === "user"
-                          ? "bg-background text-text"
-                          : "bg-background-select text-text"
-                      }`}
-                    >
+                    <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
                       <div className="font-normal text-base leading-7 whitespace-pre-wrap">
                         {message.content}
                       </div>
@@ -419,45 +426,56 @@ export default function Chat() {
                 ))}
 
                 {/* Streaming content bubble - only show if not already saved to DB */}
-                {streamingContent && (() => {
-                  const lastAssistantMsg = messages?.filter(m => m.role === "assistant").slice(-1)[0];
-                  const alreadySaved = lastAssistantMsg?.content === streamingContent.trim();
-                  return !alreadySaved ? (
-                    <div className="flex w-full justify-start">
-                      <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
-                        <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                          {streamingContent}
+                {streamingContent &&
+                  (() => {
+                    const lastAssistantMsg = messages
+                      ?.filter((m) => m.role === "assistant")
+                      .slice(-1)[0];
+                    const alreadySaved =
+                      lastAssistantMsg?.content === streamingContent.trim();
+                    return !alreadySaved ? (
+                      <div className="flex w-full justify-start">
+                        <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
+                          <div className="font-normal text-base leading-7 whitespace-pre-wrap">
+                            {streamingContent}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : null;
-                })()}
+                    ) : null;
+                  })()}
 
                 {/* Loading indicator - show during searching phase, or when waiting for content */}
-                {isStreaming && (streamStatus === "searching" || !streamingContent) && (
-                  <div className="flex items-center gap-2 text-text-alt py-2">
-                    <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm">{getStatusText()}</span>
-                  </div>
-                )}
+                {isStreaming &&
+                  (streamStatus === "searching" || !streamingContent) && (
+                    <div className="flex items-center gap-2 text-text-alt py-2">
+                      <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm">{getStatusText()}</span>
+                    </div>
+                  )}
               </div>
             </ScrollArea.Viewport>
           </ScrollArea.Root>
 
-          <div className="flex gap-3 p-4 border-t border-border-unfocus">
+          <div className="flex gap-3 p-4">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={placeholderText}
-              className="flex-1 bg-background-select px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt resize-none"
+              className="flex-1 bg-background px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt resize-none border border-border-unfocus"
               rows={2}
               disabled={isStreaming}
             />
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isStreaming}
-              className="bg-border-focus hover:bg-border-focus/80 px-4 py-2 rounded-lg font-medium text-base leading-7 text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={
+                {
+                  "--hl-bg": hlSendChat.bg,
+                  "--hl-text": hlSendChat.text,
+                } as React.CSSProperties
+              }
+              className="bg-(--hl-bg) text-(--hl-text) px-4 py-2 rounded-lg font-medium text-base leading-7 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <PaperAirplaneIcon className="size-5" />
             </Button>
