@@ -35,7 +35,6 @@ export interface AgentRunOptions {
   };
 }
 
-// All Literal unions converted to String to avoid JSON Schema anyOf issues with OpenAI
 export const ChemistryCriteria = Schema.Struct({
   epistemic_architecture: Schema.Struct({
     primary_mode: Schema.String, // "first_principles" | "empirical" | "narrative" | "dialectical" | "intuitive"
@@ -90,7 +89,7 @@ export const ChemistryCriteria = Schema.Struct({
   }),
 });
 
-export const Platform = Schema.String; // "x" | "substack" | "blog" | "youtube"
+export const Platform = Schema.Literal("substack", "blog", "youtube");
 
 export const ContentCreator = Schema.Struct({
   name: Schema.String,
@@ -133,7 +132,7 @@ export const XUser = Creator;
 export const JudgeResult = Schema.Struct({
   score: Schema.Number,
   justification: Schema.String,
-  confidence: Schema.String, // "high" | "medium" | "low"
+  confidence: Schema.Literal("high", "medium", "low"),
   mismatch_fields: Schema.Array(Schema.String),
 });
 
@@ -142,7 +141,7 @@ export const SearchCreatorsResult = Schema.Struct({
 });
 
 export const ParserResult = Schema.Struct({
-  status: Schema.String, // "needs_clarification" | "complete"
+  status: Schema.Literal("needs_clarification", "complete"),
   // Present when status is "needs_clarification"
   questions: Schema.optional(Schema.Array(Schema.String)),
   // Present when status is "complete"

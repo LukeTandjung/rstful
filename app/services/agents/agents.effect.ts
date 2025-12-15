@@ -64,6 +64,77 @@ const fixJsonSchemaKeys = (obj: unknown): unknown => {
   return result;
 };
 
+// Recursively convert null values to undefined (delete them) for Effect schema compatibility
+// OpenAI strict mode returns null for optional fields, but Effect expects undefined
+const sanitizeNulls = (obj: unknown): unknown => {
+  if (obj === null) return undefined;
+  if (Array.isArray(obj)) return obj.map(sanitizeNulls);
+  if (typeof obj === "object" && obj !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const sanitized = sanitizeNulls(value);
+      if (sanitized !== undefined) {
+        result[key] = sanitized;
+      }
+    }
+    return result;
+  }
+  return obj;
+};
+
+// Transform schema for OpenAI strict mode: all properties must be required, optional fields become nullable
+const makeStrictSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
+  const result = { ...schema };
+
+  if (result.properties && typeof result.properties === "object") {
+    const properties = result.properties as Record<string, unknown>;
+    const propertyKeys = Object.keys(properties);
+    const currentRequired = Array.isArray(result.required) ? result.required as Array<string> : [];
+
+    // Transform each property
+    const newProperties: Record<string, unknown> = {};
+    for (const key of propertyKeys) {
+      const propSchema = properties[key] as Record<string, unknown>;
+      const isOptional = !currentRequired.includes(key);
+
+      if (isOptional) {
+        // Make optional fields nullable by wrapping in anyOf with null
+        newProperties[key] = {
+          anyOf: [
+            makeStrictSchema(propSchema),
+            { type: "null" },
+          ],
+        };
+      } else {
+        // Recursively process required fields
+        newProperties[key] = makeStrictSchema(propSchema);
+      }
+    }
+
+    result.properties = newProperties;
+    result.required = propertyKeys; // All properties are now required
+    result.additionalProperties = false; // Required for strict mode
+  }
+
+  // Recursively handle nested objects in anyOf/oneOf/allOf
+  for (const combiner of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(result[combiner])) {
+      result[combiner] = (result[combiner] as Array<unknown>).map((item) =>
+        typeof item === "object" && item !== null
+          ? makeStrictSchema(item as Record<string, unknown>)
+          : item
+      );
+    }
+  }
+
+  // Handle array items
+  if (result.items && typeof result.items === "object") {
+    result.items = makeStrictSchema(result.items as Record<string, unknown>);
+  }
+
+  return result;
+};
+
 // Wrap Effect's JSON Schema in OpenAI's response_format structure
 const wrapJsonSchema = (schema: unknown, name: string) => {
   const fixed = fixJsonSchemaKeys(schema) as Record<string, unknown>;
@@ -72,15 +143,17 @@ const wrapJsonSchema = (schema: unknown, name: string) => {
   delete fixed.$schema;
 
   // OpenAI requires root schema to have type: "object"
-  // Effect may set type to undefined/null for unions - force it to "object"
   fixed.type = "object";
+
+  // Transform for strict mode: all properties required, optional fields nullable
+  const strictSchema = makeStrictSchema(fixed);
 
   return {
     type: "json_schema",
     json_schema: {
       name,
-      strict: false,
-      schema: fixed,
+      strict: true,
+      schema: strictSchema,
     },
   };
 };
@@ -218,7 +291,10 @@ export const ParserAgentLive = Layer.effect(
           ),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => Schema.decodeUnknownSync(ParserResult)(JSON.parse(result.finalOutput)),
+              try: () => {
+                const parsed = sanitizeNulls(JSON.parse(result.finalOutput));
+                return Schema.decodeUnknownSync(ParserResult)(parsed);
+              },
               catch: (error) =>
                 new ParserAgentError({
                   message: `Failed to parse/validate response: ${error instanceof Error ? error.message : String(error)}`,
@@ -241,7 +317,6 @@ export const ParserAgentLive = Layer.effect(
 
 // Platform-specific site filters for Exa search
 const PLATFORM_SITE_FILTERS: Record<Platform, string> = {
-  x: "site:x.com OR site:twitter.com",
   substack: "site:substack.com",
   blog: "-site:x.com -site:twitter.com -site:substack.com -site:youtube.com -site:medium.com",
   youtube: "site:youtube.com",
@@ -284,12 +359,12 @@ export const OrchestratorAgentLive = Layer.effect(
           Effect.flatMap((result) =>
             Effect.try({
               try: () => {
-                const parsed = Schema.decodeUnknownSync(SearchCreatorsResult)(JSON.parse(result.finalOutput));
+                const parsed = Schema.decodeUnknownSync(SearchCreatorsResult)(sanitizeNulls(JSON.parse(result.finalOutput)));
                 return [...parsed.creators];
               },
-              catch: () =>
+              catch: (error) =>
                 new OrchestratorAgentError({
-                  message: "Failed to parse search creators as JSON",
+                  message: `Failed to parse search creators: ${error instanceof Error ? error.message : String(error)}`,
                 }),
             }),
           ),
@@ -312,12 +387,20 @@ export const OrchestratorAgentLive = Layer.effect(
             systemPrompt: ORCHESTRATOR_FOOTPRINT_PROMPT,
             responseFormat: wrapJsonSchema(JSONSchema.make(FootprintResultSchema), "footprint_result"),
           }),
+          Effect.tap((result) =>
+            Effect.sync(() =>
+              console.log("Footprint raw output:", result.finalOutput),
+            ),
+          ),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => Schema.decodeUnknownSync(FootprintResultSchema)(JSON.parse(result.finalOutput)),
-              catch: () =>
+              try: () => {
+                const parsed = sanitizeNulls(JSON.parse(result.finalOutput));
+                return Schema.decodeUnknownSync(FootprintResultSchema)(parsed);
+              },
+              catch: (error) =>
                 new OrchestratorAgentError({
-                  message: "Failed to parse footprint as JSON",
+                  message: `Failed to parse footprint: ${error instanceof Error ? error.message : String(error)}`,
                 }),
             }),
           ),
@@ -352,10 +435,10 @@ export const JudgeAgentLive = Layer.effect(
           }),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => Schema.decodeUnknownSync(JudgeResultSchema)(JSON.parse(result.finalOutput)),
-              catch: () =>
+              try: () => Schema.decodeUnknownSync(JudgeResultSchema)(sanitizeNulls(JSON.parse(result.finalOutput))),
+              catch: (error) =>
                 new JudgeAgentError({
-                  message: "Failed to parse judge response as JSON",
+                  message: `Failed to parse judge response: ${error instanceof Error ? error.message : String(error)}`,
                 }),
             }),
           ),
@@ -395,6 +478,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
           totalSearched: number,
           qualifiedCreators: Array<{ user: Creator; score: JudgeResult }>,
           previousBestScore: number,
+          seenUrls: Set<string>,
         ): Effect.Effect<DeepSearchResult, DeepSearchError> =>
           pipe(
             orchestrator.searchCreators(
@@ -406,6 +490,12 @@ export const DeepSearchOrchestratorLive = Layer.effect(
               (e) =>
                 new DeepSearchError({ message: e.message, phase: "searching" }),
             ),
+            // Filter out creators we've already seen
+            Effect.map((creators) => {
+              const newCreators = creators.filter((c) => !seenUrls.has(c.profileUrl));
+              console.log(`Deduplication: ${creators.length} found, ${newCreators.length} new (${creators.length - newCreators.length} already seen)`);
+              return newCreators;
+            }),
             Effect.flatMap((creators) =>
               pipe(
                 Effect.forEach(
@@ -494,6 +584,10 @@ export const DeepSearchOrchestratorLive = Layer.effect(
               const newTotalSearched = totalSearched + scoredCreators.length;
               const newLoopCount = loopCount + 1;
 
+              // Add all processed URLs to seen set for deduplication
+              const newSeenUrls = new Set(seenUrls);
+              scoredCreators.forEach((s) => newSeenUrls.add(s.user.profileUrl));
+
               const currentBestScore =
                 scoredCreators.length > 0
                   ? Math.max(...scoredCreators.map((s) => s.score.score))
@@ -526,7 +620,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                 return Effect.succeed({
                   status: "impossible_criteria" as const,
                   suggestion:
-                    "Scores are declining across loops. Your chemistry criteria may be internally contradictory. Consider relaxing constraints on epistemic_architecture or value_hierarchy.primary_good.",
+                    "I'm having trouble finding good matches. The combination of traits you're looking for might be quite rare. Try broadening what you're looking for, or focus on fewer specific qualities.",
                   totalSearched: newTotalSearched,
                   loopsExecuted: newLoopCount,
                 });
@@ -540,6 +634,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                 newTotalSearched,
                 allQualified,
                 Math.max(previousBestScore, currentBestScore),
+                newSeenUrls,
               );
             }),
           );
@@ -560,7 +655,8 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             // If conversation history exists, user already answered - force complete
             const alreadyAskedQuestions = conversationHistory.length > 0;
 
-            if (parserResult.status.includes("clarification") && !alreadyAskedQuestions) {
+            // Schema enforces status is exactly "needs_clarification" or "complete"
+            if (parserResult.status === "needs_clarification" && !alreadyAskedQuestions) {
               return Effect.succeed({
                 status: "needs_clarification" as const,
                 questions: parserResult.questions ?? [],
@@ -596,6 +692,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                   0,
                   [],
                   0,
+                  new Set<string>(),
                 ),
               ),
             );
