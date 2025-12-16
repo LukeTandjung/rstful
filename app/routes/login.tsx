@@ -2,7 +2,12 @@ import type { Route } from "./+types/login";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, Navigate } from "react-router";
+import {
+  Authenticated,
+  Unauthenticated,
+  AuthLoading,
+} from "convex/react";
 import * as React from "react";
 import { Effect } from "effect";
 import { AuthService, Email, Password } from "services/auth";
@@ -50,85 +55,99 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-        <img
-          src="/assets/yoshida_login.png"
-          alt="Man waiting at the train station"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </div>
+    <>
+      <AuthLoading>
+        <div className="flex items-center justify-center h-screen w-full">
+          <p className="text-text">Loading...</p>
+        </div>
+      </AuthLoading>
 
-      {/* Right side - Login Form */}
-      <div className="flex flex-col justify-center w-full lg:w-1/2 bg-background px-8 py-12 sm:px-12 lg:px-16">
-        <div className="mx-auto w-full max-w-md">
-          <div className="mb-8">
-            <h1 className="font-bold text-3xl leading-9 text-text font-header mb-2">
-              Welcome back
-            </h1>
-            <p className="font-normal text-base leading-6 text-text-alt">
-              Login to your RSS Reader account
-            </p>
+      <Authenticated>
+        <Navigate to="/" replace />
+      </Authenticated>
+
+      <Unauthenticated>
+        <div className="flex min-h-screen w-full">
+          {/* Left side - Image */}
+          <div className="hidden lg:flex lg:w-1/2 relative">
+            <img
+              src="/assets/yoshida_login.png"
+              alt="Man waiting at the train station"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
           </div>
 
-          <Form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <FormField
-              name="email"
-              label="Email"
-              placeholder="you@example.com"
-            />
-
-            <div className="flex flex-col gap-2">
-              <FormField
-                name="password"
-                label="Password"
-                placeholder="Enter your password"
-                type="password"
-              />
-              <div className="text-right">
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-border-focus hover:underline font-medium"
-                >
-                  Forgot password?
-                </Link>
+          {/* Right side - Login Form */}
+          <div className="flex flex-col justify-center w-full lg:w-1/2 bg-background px-8 py-12 sm:px-12 lg:px-16">
+            <div className="mx-auto w-full max-w-md">
+              <div className="mb-8">
+                <h1 className="font-bold text-3xl leading-9 text-text font-header mb-2">
+                  Welcome back
+                </h1>
+                <p className="font-normal text-base leading-6 text-text-alt">
+                  Login to your RSS Reader account
+                </p>
               </div>
-            </div>
 
-            {error && (
-              <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+              <Form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <FormField
+                  name="email"
+                  label="Email"
+                  placeholder="you@example.com"
+                />
 
-            <Button
-              type="submit"
-              style={
-                {
-                  "--hl-bg": hlButton.bg,
-                  "--hl-text": hlButton.text,
-                } as React.CSSProperties
-              }
-              className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2"
-            >
-              Login
-            </Button>
+                <div className="flex flex-col gap-2">
+                  <FormField
+                    name="password"
+                    label="Password"
+                    placeholder="Enter your password"
+                    type="password"
+                  />
+                  <div className="text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-border-focus hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                </div>
 
-            <div className="text-center">
-              <p className="font-normal text-sm leading-6 text-text-alt">
-                Don't have an account?{" "}
-                <Link
-                  to="/sign-up"
-                  className="text-border-focus hover:underline font-medium"
+                {error && (
+                  <div className="bg-error/10 border border-error text-error px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  style={
+                    {
+                      "--hl-bg": hlButton.bg,
+                      "--hl-text": hlButton.text,
+                    } as React.CSSProperties
+                  }
+                  className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2"
                 >
-                  Sign up
-                </Link>
-              </p>
+                  Login
+                </Button>
+
+                <div className="text-center">
+                  <p className="font-normal text-sm leading-6 text-text-alt">
+                    Don't have an account?{" "}
+                    <Link
+                      to="/sign-up"
+                      className="text-border-focus hover:underline font-medium"
+                    >
+                      Sign up
+                    </Link>
+                  </p>
+                </div>
+              </Form>
             </div>
-          </Form>
+          </div>
         </div>
-      </div>
-    </div>
+      </Unauthenticated>
+    </>
   );
 }
