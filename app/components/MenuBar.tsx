@@ -26,9 +26,9 @@ export function MenuBar({ userName }: MenuBarProps) {
 
   return (
     <div className="flex items-center justify-between w-full">
-      <Avatar.Root className="size-14">
+      <Avatar.Root className="size-14 rounded-7">
         <Avatar.Image
-          src="./favicon.ico"
+          src="./favicon.svg"
           alt="RSS Reader"
           className="size-full"
         />
