@@ -50,7 +50,7 @@ export function MenuBar({ userName }: MenuBarProps) {
                       "--hl-text": hlFeeds.text,
                     } as React.CSSProperties
                   }
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-background transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-default transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Feeds
                 </NavigationMenu.Trigger>
@@ -67,7 +67,7 @@ export function MenuBar({ userName }: MenuBarProps) {
                       "--hl-text": hlStarred.text,
                     } as React.CSSProperties
                   }
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-background transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-default transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Starred
                 </NavigationMenu.Trigger>
