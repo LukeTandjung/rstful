@@ -17,6 +17,7 @@ import "./app.css";
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/rstful.svg", type: "image/svg+xml" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
