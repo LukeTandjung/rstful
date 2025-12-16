@@ -87,6 +87,7 @@ export default function Starred() {
                   <ArticleListItem
                     key={article._id}
                     article={article}
+                    onSelect={handleArticleSelect}
                     onToggleStar={handleToggleStar}
                     isStarred={true}
                   />

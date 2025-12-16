@@ -8,7 +8,6 @@ interface ArticleListItemProps {
   article: Doc<"cached_content"> | Doc<"saved_content">;
   onSelect?: (article: Doc<"cached_content"> | Doc<"saved_content">) => void;
   onToggleStar?: (articleId: string) => void;
-  isSelected?: boolean;
   isStarred?: boolean;
   feedName?: string | undefined;
 }
@@ -17,11 +16,9 @@ export function ArticleListItem({
   article,
   onSelect,
   onToggleStar,
-  isSelected = false,
   isStarred = false,
   feedName = "Unknown Feed",
 }: ArticleListItemProps) {
-  const hlItem = highlighter();
   const hlStar = highlighter();
 
   const formatDate = (date: Date) => {
@@ -38,17 +35,7 @@ export function ArticleListItem({
 
   return (
     <div
-      style={
-        {
-          "--hl-bg": hlItem.bg,
-          "--hl-text": hlItem.text,
-        } as React.CSSProperties
-      }
-      className={`border border-border-unfocus border-solid flex flex-col gap-2 p-3.5 rounded-lg w-full cursor-pointer transition-colors ${
-        isSelected
-          ? "bg-(--hl-bg) text-(--hl-text)"
-          : "hover:bg-(--hl-bg) hover:text-(--hl-text)"
-      } ${!article.is_read ? "border-border-focus" : ""}`}
+      className={`border border-border-unfocus border-solid flex flex-col gap-2 p-3.5 rounded-lg w-full cursor-pointer transition-colors hover:bg-surface-alt ${!article.is_read ? "border-border-focus" : ""}`}
       onClick={() => onSelect?.(article)}
     >
       <div className="flex items-start justify-between gap-2">

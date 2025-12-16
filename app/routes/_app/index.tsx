@@ -33,7 +33,7 @@ export default function Home() {
   const { signOut } = useAuthActions();
   const viewer = useQuery(api.auth.currentUser);
 
-  const [selectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
 
   // Get user_id from authenticated user
   const user_id = viewer?._id;
@@ -143,6 +143,8 @@ export default function Home() {
   };
 
   const handleLinkClick = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
+    setSelectedArticle(article);
+
     if (!user_id || article.is_read) return;
 
     // Only mark cached_content articles as read
@@ -193,7 +195,11 @@ export default function Home() {
   const isLoadingFeeds = feeds === undefined;
   const feedsList = feeds ?? [];
 
-  const articles = cachedArticles ?? [];
+  const articles = [...(cachedArticles ?? [])].sort((a, b) => {
+    const aDate = a.pub_date ? Number(a.pub_date) : a._creationTime;
+    const bDate = b.pub_date ? Number(b.pub_date) : b._creationTime;
+    return bDate - aDate; // newest first
+  });
   const isLoadingArticles = cachedArticles === undefined;
 
   // Calculate unread counts from cached articles
@@ -280,7 +286,7 @@ export default function Home() {
                       key={article._id}
                       article={article}
                       feedName={feed?.name}
-                      onLinkClick={handleLinkClick}
+                      onSelect={handleLinkClick}
                       onToggleStar={handleToggleStar}
                       isStarred={isArticleStarred(article)}
                     />

@@ -250,18 +250,40 @@ export function parse_rss_xml(xmlText: string): Array<{
           continue; // Skip items without links
         }
 
-        // Extract title, description, and content separately
-        const title = item.title || "";
-        const description = item.description || item.summary || "";
+        // Extract title (handle Atom format where title can be an object)
+        let title = "";
+        if (item.title) {
+          title = typeof item.title === "string" ? item.title : (item.title["#text"] || "");
+        }
+
+        // Extract description/summary (handle object format)
+        let description = "";
+        const rawDesc = item.description || item.summary;
+        if (rawDesc) {
+          description = typeof rawDesc === "string" ? rawDesc : (rawDesc["#text"] || "");
+        }
 
         // Try to get full content, fallback to description, then fallback message
-        const fullContent = item["content:encoded"] || item.content || "";
+        let fullContent = "";
+        const rawContent = item["content:encoded"] || item.content;
+        if (rawContent) {
+          fullContent = typeof rawContent === "string" ? rawContent : (rawContent["#text"] || "");
+        }
         const content =
           fullContent ||
           description ||
           "This RSS feed does not show content. Click the link above to see the full content.";
 
-        const author = item.author || item.creator || item["dc:creator"] || "";
+        // Extract author (handle Atom format where author is an object with name/uri)
+        let author = "";
+        const rawAuthor = item.author || item.creator || item["dc:creator"];
+        if (rawAuthor) {
+          if (typeof rawAuthor === "string") {
+            author = rawAuthor;
+          } else if (rawAuthor.name) {
+            author = rawAuthor.name;
+          }
+        }
 
         if (!title) {
           continue; // Skip items without title
