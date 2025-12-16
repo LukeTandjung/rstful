@@ -33,7 +33,7 @@ export default function Home() {
   const { signOut } = useAuthActions();
   const viewer = useQuery(api.auth.currentUser);
 
-  const [selectedArticle, setSelectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
+  const [selectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
 
   // Get user_id from authenticated user
   const user_id = viewer?._id;
@@ -66,6 +66,7 @@ export default function Home() {
   // Mutations for saved_content
   const postSavedContent = useMutation(api.saved_content.post_saved_content);
   const deleteSavedContent = useMutation(api.saved_content.delete_saved_content);
+  const markAsRead = useMutation(api.cached_content.mark_as_read);
 
   // Create the service Layer
   const RssFeedServiceLayer = make_rss_feed_service_live(
@@ -141,9 +142,15 @@ export default function Home() {
     Effect.runPromise(program);
   };
 
-  const handleArticleSelect = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
-    setSelectedArticle(article);
-    // TODO: Implement mark as read with articles service
+  const handleLinkClick = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
+    if (!user_id || article.is_read) return;
+
+    // Only mark cached_content articles as read
+    const cachedArticle = articles.find((a) => a._id === article._id);
+    if (cachedArticle) {
+      markAsRead({ article_id: cachedArticle._id, user_id })
+        .catch((error) => console.error("Failed to mark article as read:", error));
+    }
   };
 
   const handleToggleStar = (articleId: string) => {
@@ -273,9 +280,8 @@ export default function Home() {
                       key={article._id}
                       article={article}
                       feedName={feed?.name}
-                      onSelect={handleArticleSelect}
+                      onLinkClick={handleLinkClick}
                       onToggleStar={handleToggleStar}
-                      isSelected={selectedArticle?._id === article._id}
                       isStarred={isArticleStarred(article)}
                     />
                   );

@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const get_cached_articles = query({
@@ -46,5 +46,30 @@ export const get_total_unread_count = query({
       .filter((q) => q.eq(q.field("is_read"), false))
       .collect();
     return articles.length;
+  },
+});
+
+export const mark_as_read = mutation({
+  args: {
+    article_id: v.id("cached_content"),
+    user_id: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const article = await ctx.db.get(args.article_id);
+
+    if (!article) {
+      throw new Error("Article not found");
+    }
+
+    if (article.user_id !== args.user_id) {
+      throw new Error("Unauthorized: Article does not belong to user");
+    }
+
+    if (article.is_read) {
+      return { success: true, alreadyRead: true };
+    }
+
+    await ctx.db.patch(args.article_id, { is_read: true });
+    return { success: true, alreadyRead: false };
   },
 });

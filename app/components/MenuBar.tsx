@@ -10,10 +10,10 @@ interface MenuBarProps {
 
 export function MenuBar({ userName }: MenuBarProps) {
   const location = useLocation();
-  const hlFeeds = highlighter()
-  const hlStarred = highlighter()
-  const hlChat = highlighter()
-  const hlSettings = highlighter()
+  const hlFeeds = highlighter();
+  const hlStarred = highlighter();
+  const hlChat = highlighter();
+  const hlSettings = highlighter();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -44,8 +44,13 @@ export function MenuBar({ userName }: MenuBarProps) {
               <Link to="/">
                 <NavigationMenu.Trigger
                   data-active={isActive("/")}
-                  style={{ '--hl-bg': hlFeeds.bg, '--hl-text': hlFeeds.text } as React.CSSProperties}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
+                  style={
+                    {
+                      "--hl-bg": hlFeeds.bg,
+                      "--hl-text": hlFeeds.text,
+                    } as React.CSSProperties
+                  }
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-background transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Feeds
                 </NavigationMenu.Trigger>
@@ -56,8 +61,13 @@ export function MenuBar({ userName }: MenuBarProps) {
               <Link to="/starred">
                 <NavigationMenu.Trigger
                   data-active={isActive("/starred")}
-                  style={{ '--hl-bg': hlStarred.bg, '--hl-text': hlStarred.text } as React.CSSProperties}
-                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
+                  style={
+                    {
+                      "--hl-bg": hlStarred.bg,
+                      "--hl-text": hlStarred.text,
+                    } as React.CSSProperties
+                  }
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-background transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Starred
                 </NavigationMenu.Trigger>
@@ -68,7 +78,12 @@ export function MenuBar({ userName }: MenuBarProps) {
               <Link to="/chat">
                 <NavigationMenu.Trigger
                   data-active={isActive("/chat")}
-                  style={{ '--hl-bg': hlChat.bg, '--hl-text': hlChat.text } as React.CSSProperties}
+                  style={
+                    {
+                      "--hl-bg": hlChat.bg,
+                      "--hl-text": hlChat.text,
+                    } as React.CSSProperties
+                  }
                   className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Chat
@@ -85,7 +100,12 @@ export function MenuBar({ userName }: MenuBarProps) {
               <Link to="/settings">
                 <NavigationMenu.Trigger
                   data-active={isActive("/settings")}
-                  style={{ '--hl-bg': hlSettings.bg, '--hl-text': hlSettings.text } as React.CSSProperties}
+                  style={
+                    {
+                      "--hl-bg": hlSettings.bg,
+                      "--hl-text": hlSettings.text,
+                    } as React.CSSProperties
+                  }
                   className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors data-[active=true]:bg-(--hl-bg) data-[active=true]:text-(--hl-text)"
                 >
                   Settings

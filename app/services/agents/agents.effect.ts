@@ -50,15 +50,24 @@ const fixJsonSchemaKeys = (obj: unknown): unknown => {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     // Convert snake_case JSON Schema keywords to camelCase
-    const newKey = key === "any_of" ? "anyOf"
-      : key === "one_of" ? "oneOf"
-      : key === "all_of" ? "allOf"
-      : key === "additional_properties" ? "additionalProperties"
-      : key === "min_length" ? "minLength"
-      : key === "max_length" ? "maxLength"
-      : key === "min_items" ? "minItems"
-      : key === "max_items" ? "maxItems"
-      : key;
+    const newKey =
+      key === "any_of"
+        ? "anyOf"
+        : key === "one_of"
+          ? "oneOf"
+          : key === "all_of"
+            ? "allOf"
+            : key === "additional_properties"
+              ? "additionalProperties"
+              : key === "min_length"
+                ? "minLength"
+                : key === "max_length"
+                  ? "maxLength"
+                  : key === "min_items"
+                    ? "minItems"
+                    : key === "max_items"
+                      ? "maxItems"
+                      : key;
     result[newKey] = fixJsonSchemaKeys(value);
   }
   return result;
@@ -83,13 +92,17 @@ const sanitizeNulls = (obj: unknown): unknown => {
 };
 
 // Transform schema for OpenAI strict mode: all properties must be required, optional fields become nullable
-const makeStrictSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
+const makeStrictSchema = (
+  schema: Record<string, unknown>,
+): Record<string, unknown> => {
   const result = { ...schema };
 
   if (result.properties && typeof result.properties === "object") {
     const properties = result.properties as Record<string, unknown>;
     const propertyKeys = Object.keys(properties);
-    const currentRequired = Array.isArray(result.required) ? result.required as Array<string> : [];
+    const currentRequired = Array.isArray(result.required)
+      ? (result.required as Array<string>)
+      : [];
 
     // Transform each property
     const newProperties: Record<string, unknown> = {};
@@ -100,10 +113,7 @@ const makeStrictSchema = (schema: Record<string, unknown>): Record<string, unkno
       if (isOptional) {
         // Make optional fields nullable by wrapping in anyOf with null
         newProperties[key] = {
-          anyOf: [
-            makeStrictSchema(propSchema),
-            { type: "null" },
-          ],
+          anyOf: [makeStrictSchema(propSchema), { type: "null" }],
         };
       } else {
         // Recursively process required fields
@@ -122,7 +132,7 @@ const makeStrictSchema = (schema: Record<string, unknown>): Record<string, unkno
       result[combiner] = (result[combiner] as Array<unknown>).map((item) =>
         typeof item === "object" && item !== null
           ? makeStrictSchema(item as Record<string, unknown>)
-          : item
+          : item,
       );
     }
   }
@@ -175,7 +185,9 @@ export const AgentRunnerLive = Layer.effect(
                 instructions: options.systemPrompt,
               }),
               ...(options.responseFormat && {
-                responseFormat: options.responseFormat as unknown as { [key: string]: unknown },
+                responseFormat: options.responseFormat as unknown as {
+                  [key: string]: unknown;
+                },
               }),
               ...(options.policy && { policy: options.policy }),
             });
@@ -199,7 +211,9 @@ export const AgentRunnerLive = Layer.effect(
           ...(options.maxSteps && { maxSteps: options.maxSteps }),
           ...(options.systemPrompt && { instructions: options.systemPrompt }),
           ...(options.responseFormat && {
-            responseFormat: options.responseFormat as unknown as { [key: string]: unknown },
+            responseFormat: options.responseFormat as unknown as {
+              [key: string]: unknown;
+            },
           }),
           stream: true,
         });
@@ -250,10 +264,12 @@ export const QueryAgentLive = Layer.effect(
 const createParserPolicy = (hasAnsweredQuestions: boolean) => () => {
   if (hasAnsweredQuestions) {
     return {
-      messagePrepend: [{
-        role: "system",
-        content: `CRITICAL OVERRIDE: The user has already answered your clarifying questions. You MUST return status: "complete" with all fields populated. Do NOT return "needs_clarification" again. Extract the platform, compatibility_string, and chemistry_criteria from their answers NOW.`,
-      }],
+      messagePrepend: [
+        {
+          role: "system",
+          content: `CRITICAL OVERRIDE: The user has already answered your clarifying questions. You MUST return status: "complete" with all fields populated. Do NOT return "needs_clarification" again. Extract the platform, compatibility_string, and chemistry_criteria from their answers NOW.`,
+        },
+      ],
     };
   }
   return {};
@@ -279,7 +295,10 @@ export const ParserAgentLive = Layer.effect(
                 : input,
             model: "openai/gpt-5.1",
             systemPrompt: PARSER_PROMPT,
-            responseFormat: wrapJsonSchema(JSONSchema.make(ParserResult), "parser_result"),
+            responseFormat: wrapJsonSchema(
+              JSONSchema.make(ParserResult),
+              "parser_result",
+            ),
             policy: createParserPolicy(conversationHistory.length > 0),
             ...(tools && { tools }),
             maxSteps: 5,
@@ -295,9 +314,10 @@ export const ParserAgentLive = Layer.effect(
                 const parsed = sanitizeNulls(JSON.parse(result.finalOutput));
                 return Schema.decodeUnknownSync(ParserResult)(parsed);
               },
-              catch: (error) =>
+              catch: () =>
                 new ParserAgentError({
-                  message: `Failed to parse/validate response: ${error instanceof Error ? error.message : String(error)}`,
+                  message:
+                    "Insufficent information to proceed with deep search. Either answer parsing failed or questions supplied was not answered. ",
                 }),
             }),
           ),
@@ -343,7 +363,10 @@ export const OrchestratorAgentLive = Layer.effect(
               input: `Search for content creators on ${platform} matching: "${compatibilityString}". Find up to ${count} creators. Use filter: ${PLATFORM_SITE_FILTERS[platform]}`,
               model: "openai/gpt-5.1",
               systemPrompt: ORCHESTRATOR_SEARCH_PROMPT,
-              responseFormat: wrapJsonSchema(JSONSchema.make(SearchCreatorsResult), "search_creators_result"),
+              responseFormat: wrapJsonSchema(
+                JSONSchema.make(SearchCreatorsResult),
+                "search_creators_result",
+              ),
               mcpServers: ["joerup/exa-mcp"],
               maxSteps: 5,
             }),
@@ -359,7 +382,9 @@ export const OrchestratorAgentLive = Layer.effect(
           Effect.flatMap((result) =>
             Effect.try({
               try: () => {
-                const parsed = Schema.decodeUnknownSync(SearchCreatorsResult)(sanitizeNulls(JSON.parse(result.finalOutput)));
+                const parsed = Schema.decodeUnknownSync(SearchCreatorsResult)(
+                  sanitizeNulls(JSON.parse(result.finalOutput)),
+                );
                 return [...parsed.creators];
               },
               catch: (error) =>
@@ -385,7 +410,10 @@ export const OrchestratorAgentLive = Layer.effect(
             input: `Name: ${creator.name}\nPlatform: ${creator.platform}\nProfile: ${creator.profileUrl}\n${creator.bio ? `Bio: ${creator.bio}\n` : ""}\nRecent Content:\n${creator.recentContent.map((c, i) => `${i + 1}. ${c.title ? `[${c.title}] ` : ""}${c.excerpt}`).join("\n")}`,
             model: "openai/gpt-5.1",
             systemPrompt: ORCHESTRATOR_FOOTPRINT_PROMPT,
-            responseFormat: wrapJsonSchema(JSONSchema.make(FootprintResultSchema), "footprint_result"),
+            responseFormat: wrapJsonSchema(
+              JSONSchema.make(FootprintResultSchema),
+              "footprint_result",
+            ),
           }),
           Effect.tap((result) =>
             Effect.sync(() =>
@@ -431,11 +459,17 @@ export const JudgeAgentLive = Layer.effect(
             input: `User Chemistry Criteria:\n${JSON.stringify(userCriteria, null, 2)}\n\nCandidate Footprint:\n${JSON.stringify(candidateFootprint, null, 2)}`,
             model: "openai/gpt-4o",
             systemPrompt: JUDGE_PROMPT,
-            responseFormat: wrapJsonSchema(JSONSchema.make(JudgeResultSchema), "judge_result"),
+            responseFormat: wrapJsonSchema(
+              JSONSchema.make(JudgeResultSchema),
+              "judge_result",
+            ),
           }),
           Effect.flatMap((result) =>
             Effect.try({
-              try: () => Schema.decodeUnknownSync(JudgeResultSchema)(sanitizeNulls(JSON.parse(result.finalOutput))),
+              try: () =>
+                Schema.decodeUnknownSync(JudgeResultSchema)(
+                  sanitizeNulls(JSON.parse(result.finalOutput)),
+                ),
               catch: (error) =>
                 new JudgeAgentError({
                   message: `Failed to parse judge response: ${error instanceof Error ? error.message : String(error)}`,
@@ -492,8 +526,12 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             ),
             // Filter out creators we've already seen
             Effect.map((creators) => {
-              const newCreators = creators.filter((c) => !seenUrls.has(c.profileUrl));
-              console.log(`Deduplication: ${creators.length} found, ${newCreators.length} new (${creators.length - newCreators.length} already seen)`);
+              const newCreators = creators.filter(
+                (c) => !seenUrls.has(c.profileUrl),
+              );
+              console.log(
+                `Deduplication: ${creators.length} found, ${newCreators.length} new (${creators.length - newCreators.length} already seen)`,
+              );
               return newCreators;
             }),
             Effect.flatMap((creators) =>
@@ -527,9 +565,13 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                       (
                         item,
                       ): item is {
-                        result: FootprintResult & { footprint: ChemistryCriteria };
+                        result: FootprintResult & {
+                          footprint: ChemistryCriteria;
+                        };
                         creator: ContentCreator;
-                      } => !item.result.skip && item.result.footprint !== undefined,
+                      } =>
+                        !item.result.skip &&
+                        item.result.footprint !== undefined,
                     )
                     .map(({ result, creator }, i) => ({
                       id: `creator-${totalSearched + i}`,
@@ -656,7 +698,10 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             const alreadyAskedQuestions = conversationHistory.length > 0;
 
             // Schema enforces status is exactly "needs_clarification" or "complete"
-            if (parserResult.status === "needs_clarification" && !alreadyAskedQuestions) {
+            if (
+              parserResult.status === "needs_clarification" &&
+              !alreadyAskedQuestions
+            ) {
               return Effect.succeed({
                 status: "needs_clarification" as const,
                 questions: parserResult.questions ?? [],
@@ -664,7 +709,8 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             }
 
             // Either status is "complete" OR we're forcing complete because user already answered
-            const { compatibility_string, platform, chemistry_criteria } = parserResult;
+            const { compatibility_string, platform, chemistry_criteria } =
+              parserResult;
             if (!compatibility_string || !platform || !chemistry_criteria) {
               // If LLM still didn't provide fields after user answered, that's an error
               return Effect.fail(

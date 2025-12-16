@@ -2,7 +2,14 @@ import { useEffect, useRef } from "react";
 import { Outlet, Navigate } from "react-router";
 import { Separator } from "@base-ui-components/react/separator";
 import { MenuBar } from "components";
-import { Authenticated, Unauthenticated, AuthLoading, useQuery, useMutation, useAction } from "convex/react";
+import {
+  Authenticated,
+  Unauthenticated,
+  AuthLoading,
+  useQuery,
+  useMutation,
+  useAction,
+} from "convex/react";
 import { api } from "convex/_generated/api";
 import { Effect } from "effect";
 import { RssFeedService, make_rss_feed_service_live } from "services/rss_feed";
@@ -26,7 +33,7 @@ export default function Layout() {
     putRssFeed,
     deleteRssFeed,
     fetchUserFeeds,
-    refreshFeed
+    refreshFeed,
   );
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,15 +61,15 @@ export default function Layout() {
           Effect.sync(() => {
             console.log("RSS feeds fetched:", result);
             isFetchingRef.current = false;
-          })
+          }),
         ),
         Effect.provide(RssFeedServiceLayer),
         Effect.catchAll((error) =>
           Effect.sync(() => {
             console.error("Failed to fetch RSS feeds:", error);
             isFetchingRef.current = false;
-          })
-        )
+          }),
+        ),
       );
 
       Effect.runPromise(program);
@@ -87,7 +94,7 @@ export default function Layout() {
     <>
       <AuthLoading>
         <div className="flex items-center justify-center h-screen w-full">
-          <p>Loading...</p>
+          <p className="text-background">Loading...</p>
         </div>
       </AuthLoading>
 
@@ -98,7 +105,6 @@ export default function Layout() {
       <Authenticated>
         <div className="flex flex-col gap-6 h-screen p-6 w-full">
           <MenuBar userName={viewer?.name} />
-          <Separator className="w-full bg-border-unfocus h-0.5 shrink-0" />
           <Outlet />
         </div>
       </Authenticated>
