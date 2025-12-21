@@ -59,7 +59,7 @@ export default function ForgotPassword() {
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src="/assets/yoshida_login.png"
+          src="/assets/yoshida_login.webp"
           alt="Man waiting at the train station"
           className="absolute inset-0 w-full h-full object-cover"
         />

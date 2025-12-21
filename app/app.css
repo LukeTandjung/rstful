@@ -34,7 +34,7 @@ body {
   @media (prefers-color-scheme: light) {
     color-scheme: light;
   }
-  background: url("/assets/background_image.png") center / cover no-repeat fixed;
+  background: url("/assets/background_image.webp") center / cover no-repeat fixed;
   
   background-size: cover;
   background-attachment: fixed;
