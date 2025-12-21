@@ -6,7 +6,7 @@ import type { RssFeed } from "types";
 import type { Id } from "convex/_generated/dataModel";
 import { EditFeedDialog } from "./EditFeedDialog";
 import { DeleteConfirmDialog } from "./RemoveFeedDialog";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface FeedCollapsibleItemProps {
   feed: RssFeed;
@@ -24,7 +24,7 @@ export function FeedCollapsibleItem({
   onRemove,
 }: FeedCollapsibleItemProps) {
   const [open, setOpen] = useState(false);
-  const hlUnread = highlighter();
+  const hlUnread = useHighlighter();
 
   return (
     <Collapsible.Root

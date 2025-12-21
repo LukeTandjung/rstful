@@ -2,7 +2,7 @@ import { Toggle } from "@base-ui-components/react/toggle";
 import { StarIcon as StarIconSolid } from "@heroicons/react/16/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import type { Doc } from "convex/_generated/dataModel";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface ArticleListItemProps {
   article: Doc<"cached_content"> | Doc<"saved_content">;
@@ -19,7 +19,7 @@ export function ArticleListItem({
   isStarred = false,
   feedName = "Unknown Feed",
 }: ArticleListItemProps) {
-  const hlStar = highlighter();
+  const hlStar = useHighlighter();
 
   const formatDate = (date: Date) => {
     const now = new Date();

@@ -4,7 +4,7 @@ import {
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/16/solid";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 export type ChatMode = "regular" | "deep_search";
 
@@ -14,8 +14,8 @@ interface ChatModeToggleProps {
 }
 
 export function ChatModeToggle({ mode, onModeChange }: ChatModeToggleProps) {
-  const hlRegular = highlighter()
-  const hlDeepSearch = highlighter()
+  const hlRegular = useHighlighter()
+  const hlDeepSearch = useHighlighter()
 
   return (
     <ToggleGroup

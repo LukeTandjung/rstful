@@ -1,8 +1,8 @@
 import { Switch } from "@base-ui-components/react/switch";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 export function CustomSwitch() {
-  const hl = highlighter()
+  const hl = useHighlighter()
 
   return (
     <Switch.Root

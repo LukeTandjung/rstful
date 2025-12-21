@@ -3,7 +3,7 @@ import { Dialog } from "@base-ui-components/react/dialog";
 import { FormField } from "./FormField";
 import { CustomSelect } from "./CustomSelect";
 import type { ReactNode } from "react";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface AddFeedDialogProps {
   trigger: ReactNode;
@@ -12,7 +12,7 @@ interface AddFeedDialogProps {
 
 export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
   const [open, setOpen] = useState(false);
-  const hl = highlighter();
+  const hl = useHighlighter();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

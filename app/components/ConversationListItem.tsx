@@ -6,7 +6,7 @@ import {
 } from "@heroicons/react/16/solid";
 import type { Id } from "convex/_generated/dataModel";
 import { DeleteConfirmDialog } from "./RemoveFeedDialog";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 type ChatMode = "regular" | "deep_search" | "user";
 
@@ -35,7 +35,7 @@ export function ConversationListItem({
 }: ConversationListItemProps) {
   const ModeIcon = modeIcons[mode];
 
-  const hl = highlighter()
+  const hl = useHighlighter()
 
   return (
     <div

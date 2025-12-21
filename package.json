@@ -24,6 +24,7 @@
     "effect": "^3.19.9",
     "fast-xml-parser": "^5.3.2",
     "isbot": "^5.1.31",
+    "lighthouse": "^13.0.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-router": "7.10.1",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Route } from "./+types/chat";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import {
@@ -13,7 +13,7 @@ import { Button } from "@base-ui-components/react/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 // localStorage helpers for persisting search state across page switches
 const SEARCH_STATE_KEY = "deep_search_state";
@@ -63,8 +63,8 @@ export default function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const hlNewConversation = highlighter();
-  const hlSendChat = highlighter();
+  const hlNewConversation = useHighlighter();
+  const hlSendChat = useHighlighter();
 
   const [chatId, setChatId] = useState<Id<"group_chat"> | null>(null);
 

@@ -7,7 +7,7 @@ import * as React from "react";
 import { Effect } from "effect";
 import { AuthService, Email, Password } from "services/auth";
 import { appRuntime } from "services/runtime";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -19,7 +19,7 @@ export function meta({}: Route.MetaArgs) {
 export default function SignUp() {
   const navigate = useNavigate();
   const [error, setError] = React.useState<string | null>(null);
-  const hlButton = highlighter();
+  const hlButton = useHighlighter();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

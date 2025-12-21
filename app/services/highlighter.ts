@@ -1,3 +1,5 @@
+import { useMemo } from "react"
+
 // Highlighter colors from Kanagawa palette
 const HIGHLIGHTERS = [
   "#E6C384", // carpYellow
@@ -47,11 +49,14 @@ function getBestTextColor(bgHex: string): string {
 }
 
 /**
- * Returns a random highlighter background color and its WCAG-compliant text color.
+ * React hook that returns a random highlighter background color and its WCAG-compliant text color.
+ * The color is memoized so it remains stable across re-renders.
  * @returns { bg: string, text: string }
  */
-export function highlighter(): { bg: string; text: string } {
-  const bg = HIGHLIGHTERS[Math.floor(Math.random() * HIGHLIGHTERS.length)]
-  const text = getBestTextColor(bg)
-  return { bg, text }
+export function useHighlighter(): { bg: string; text: string } {
+  return useMemo(() => {
+    const bg = HIGHLIGHTERS[Math.floor(Math.random() * HIGHLIGHTERS.length)]
+    const text = getBestTextColor(bg)
+    return { bg, text }
+  }, [])
 }

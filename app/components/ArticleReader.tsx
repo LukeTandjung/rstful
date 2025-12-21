@@ -1,7 +1,7 @@
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import type { Doc } from "convex/_generated/dataModel";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface ArticleReaderProps {
   article: Doc<"cached_content"> | Doc<"saved_content"> | null;
@@ -9,7 +9,7 @@ interface ArticleReaderProps {
 }
 
 export function ArticleReader({ article, onToggleStar }: ArticleReaderProps) {
-  const hl = highlighter()
+  const hl = useHighlighter()
 
   if (!article) {
     return (

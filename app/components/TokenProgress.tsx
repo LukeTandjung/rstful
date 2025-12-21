@@ -1,5 +1,5 @@
 import { Progress } from "@base-ui-components/react/progress";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface TokenProgressProps {
   label: string;
@@ -14,7 +14,7 @@ export function TokenProgress({
   max,
   period = "this month",
 }: TokenProgressProps) {
-  const hl = highlighter()
+  const hl = useHighlighter()
   const percentage = (current / max) * 100;
 
   return (

@@ -11,7 +11,7 @@ import { appRuntime } from "services/runtime";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { downloadOpml, parseOpml, readOpmlFile } from "services/opml";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -27,10 +27,10 @@ export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const hlBuyTokens = highlighter()
-  const hlExport = highlighter()
-  const hlImport = highlighter()
-  const hlLogout = highlighter()
+  const hlBuyTokens = useHighlighter()
+  const hlExport = useHighlighter()
+  const hlImport = useHighlighter()
+  const hlLogout = useHighlighter()
 
   const viewer = useQuery(api.auth.currentUser);
   const feeds = useQuery(

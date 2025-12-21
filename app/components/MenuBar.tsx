@@ -2,7 +2,7 @@ import { Avatar } from "@base-ui-components/react/avatar";
 import { NavigationMenu } from "@base-ui-components/react/navigation-menu";
 import { Separator } from "@base-ui-components/react/separator";
 import { Link, useLocation } from "react-router";
-import { highlighter } from "services/highlighter";
+import { useHighlighter } from "services/highlighter";
 
 interface MenuBarProps {
   userName?: string | undefined;
@@ -10,10 +10,10 @@ interface MenuBarProps {
 
 export function MenuBar({ userName }: MenuBarProps) {
   const location = useLocation();
-  const hlFeeds = highlighter();
-  const hlStarred = highlighter();
-  const hlChat = highlighter();
-  const hlSettings = highlighter();
+  const hlFeeds = useHighlighter();
+  const hlStarred = useHighlighter();
+  const hlChat = useHighlighter();
+  const hlSettings = useHighlighter();
 
   const isActive = (path: string) => {
     return location.pathname === path;
