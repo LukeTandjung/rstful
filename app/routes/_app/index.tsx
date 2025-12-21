@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { Route } from "./+types/index";
 import type { RssFeed } from "types";
 import type { Id, Doc } from "convex/_generated/dataModel";
@@ -148,7 +148,7 @@ export default function Home() {
     if (!user_id || article.is_read) return;
 
     // Only mark cached_content articles as read
-    const cachedArticle = articles.find((a) => a._id === article._id);
+    const cachedArticle = articleMap.get(article._id);
     if (cachedArticle) {
       markAsRead({ article_id: cachedArticle._id, user_id })
         .catch((error) => console.error("Failed to mark article as read:", error));
@@ -161,14 +161,14 @@ export default function Home() {
       return;
     }
 
-    const article = articles.find((a) => a._id === articleId);
+    const article = articleMap.get(articleId as Id<"cached_content">);
     if (!article) {
       console.error("Article not found:", articleId);
       return;
     }
 
     // Check if already saved by matching link
-    const savedArticle = savedArticles?.find((s) => s.link === article.link);
+    const savedArticle = savedByLinkMap.get(article.link);
 
     if (savedArticle) {
       // Already saved, so remove it
@@ -214,6 +214,20 @@ export default function Home() {
   // Helper to check if article is starred
   const savedLinks = new Set(savedArticles?.map((s) => s.link) ?? []);
   const isArticleStarred = (article: Doc<"cached_content">) => savedLinks.has(article.link);
+
+  // Create lookup maps to avoid O(n) searches in render - O(1) lookups instead
+  const feedMap = useMemo(
+    () => new Map(feedsList.map((f) => [f._id, f])),
+    [feedsList]
+  );
+  const articleMap = useMemo(
+    () => new Map(articles.map((a) => [a._id, a])),
+    [articles]
+  );
+  const savedByLinkMap = useMemo(
+    () => new Map(savedArticles?.map((s) => [s.link, s]) ?? []),
+    [savedArticles]
+  );
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
@@ -277,21 +291,16 @@ export default function Home() {
           <ScrollArea.Root className="flex grow min-h-0 w-full">
             <ScrollArea.Viewport className="flex grow min-h-0">
               <div className="flex flex-col gap-3 grow min-h-0">
-                {articles.map((article: Doc<"cached_content">) => {
-                  const feed = feedsList.find(
-                    (f: Doc<"rss_feed">) => f._id === article.rss_feed_id
-                  );
-                  return (
+                {articles.map((article: Doc<"cached_content">) => (
                     <ArticleListItem
                       key={article._id}
                       article={article}
-                      feedName={feed?.name}
+                      feedName={feedMap.get(article.rss_feed_id)?.name}
                       onSelect={handleLinkClick}
                       onToggleStar={handleToggleStar}
                       isStarred={isArticleStarred(article)}
                     />
-                  );
-                })}
+                  ))}
               </div>
             </ScrollArea.Viewport>
           </ScrollArea.Root>

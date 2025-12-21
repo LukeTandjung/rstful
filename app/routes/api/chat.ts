@@ -179,14 +179,8 @@ export async function action({ request }: ActionFunctionArgs) {
           emit({ type: "text", content });
         };
 
-        const streamText = async (text: string, delayMs = 15) => {
-          const words = text.split(/(\s+)/);
-          for (const word of words) {
-            emitText(word);
-            if (word.trim()) {
-              await new Promise((resolve) => setTimeout(resolve, delayMs));
-            }
-          }
+        const streamText = (text: string) => {
+          emitText(text);
         };
 
         try {
@@ -201,7 +195,7 @@ export async function action({ request }: ActionFunctionArgs) {
               async (acknowledgment) => {
                 // Switch to "searching" status when orchestrator starts
                 emitStatus("searching");
-                await streamText(acknowledgment);
+                streamText(acknowledgment);
                 // Save acknowledgment as assistant message so it persists if user leaves
                 if (chatId && userId) {
                   await saveAssistantMessage(chatId, userId, acknowledgment);
@@ -246,7 +240,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
           // Switch to generating status before streaming final results
           emitStatus("generating");
-          await streamText(responseText);
+          streamText(responseText);
           // Save final result as assistant message
           if (chatId && userId) {
             await saveAssistantMessage(chatId, userId, responseText);
@@ -256,7 +250,7 @@ export async function action({ request }: ActionFunctionArgs) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           const errorText = `Something went wrong: ${errorMessage}`;
-          await streamText(errorText);
+          streamText(errorText);
           if (chatId && userId) {
             await saveAssistantMessage(chatId, userId, errorText);
           }
