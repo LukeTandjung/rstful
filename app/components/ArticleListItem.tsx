@@ -39,9 +39,9 @@ export function ArticleListItem({
       onClick={() => onSelect?.(article)}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 flex flex-col gap-1">
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div
-            className={`font-medium text-base leading-6 ${
+            className={`font-medium text-base leading-6 break-all ${
               article.is_read ? "text-text-alt" : "text-text"
             }`}
           >
