@@ -26,6 +26,7 @@ export const post_rss_feed = mutation({
     name: v.string(),
     category: v.string(),
     url: v.string(),
+    website_url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
     failure_count: v.optional(v.number()),
@@ -36,6 +37,7 @@ export const post_rss_feed = mutation({
       name: args.name,
       category: args.category,
       url: args.url,
+      website_url: args.website_url,
       status: args.status,
       last_fetched: args.last_fetched,
       failure_count: args.failure_count ?? 0,
@@ -50,6 +52,7 @@ export const put_rss_feed = mutation({
     name: v.string(),
     category: v.string(),
     url: v.string(),
+    website_url: v.string(),
   },
   handler: async (ctx, args) => {
     const { rss_feed_id } = args;
@@ -58,6 +61,7 @@ export const put_rss_feed = mutation({
       name: args.name,
       category: args.category,
       url: args.url,
+      website_url: args.website_url,
     });
 
     return rss_feed_id;
@@ -103,6 +107,7 @@ export const import_feeds = mutation({
         name: v.string(),
         url: v.string(),
         category: v.string(),
+        website_url: v.optional(v.string()),
       })
     ),
   },
@@ -130,12 +135,24 @@ export const import_feeds = mutation({
         continue;
       }
 
+      // Derive website_url from RSS URL if not provided
+      let websiteUrl = feed.website_url;
+      if (!websiteUrl) {
+        try {
+          const urlObj = new URL(feed.url);
+          websiteUrl = `${urlObj.protocol}//${urlObj.host}`;
+        } catch {
+          websiteUrl = feed.url;
+        }
+      }
+
       try {
         await ctx.db.insert("rss_feed", {
           user_id,
           name: feed.name,
           category: feed.category,
           url: feed.url,
+          website_url: websiteUrl,
           status: "active",
           last_fetched: BigInt(0),
           failure_count: 0,

@@ -104,7 +104,7 @@ export default function Layout() {
 
       <Authenticated>
         <div className="flex flex-col gap-6 h-screen p-6 w-full">
-          <MenuBar userName={viewer?.name} />
+          <MenuBar userName={viewer?.name} userId={user_id} />
           <Outlet />
         </div>
       </Authenticated>

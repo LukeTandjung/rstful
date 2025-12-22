@@ -6,6 +6,7 @@ export interface RssFeed {
   user_id: Id<"users">;
   name: string;
   url: string;
+  website_url: string;
   category: string;
   last_fetched: bigint;
   status: string;

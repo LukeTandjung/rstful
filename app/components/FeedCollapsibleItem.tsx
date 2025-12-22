@@ -12,7 +12,7 @@ interface FeedCollapsibleItemProps {
   feed: RssFeed;
   unreadCount?: number;
   onRefresh: (feedId: Id<"rss_feed">) => void;
-  onEdit: (feedId: Id<"rss_feed">, name: string, category: string, url: string) => void;
+  onEdit: (feedId: Id<"rss_feed">, name: string, category: string, url: string, website_url: string) => void;
   onRemove: (feedId: Id<"rss_feed">) => void;
 }
 

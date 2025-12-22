@@ -32,6 +32,7 @@ export default defineSchema({
     name: v.string(),
     category: v.string(),
     url: v.string(),
+    website_url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
     failure_count: v.optional(v.number()),

@@ -7,7 +7,7 @@ import { useHighlighter } from "services/highlighter";
 
 interface AddFeedDialogProps {
   trigger: ReactNode;
-  onAdd?: (name: string, category: string, url: string) => void;
+  onAdd?: (name: string, category: string, url: string, website_url: string) => void;
 }
 
 export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
@@ -19,10 +19,11 @@ export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const url = formData.get("url") as string;
+    const website_url = formData.get("website_url") as string;
     const category = formData.get("category") as string;
 
-    console.log("handleSubmit called with:", { name, url, category });
-    onAdd?.(name, category, url);
+    console.log("handleSubmit called with:", { name, url, website_url, category });
+    onAdd?.(name, category, url, website_url);
     setOpen(false);
     e.currentTarget.reset();
   };
@@ -53,6 +54,12 @@ export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
                 name="name"
                 label="Name"
                 placeholder="Feed name"
+              />
+
+              <FormField
+                name="website_url"
+                label="Website URL"
+                placeholder="https://example.com"
               />
 
               <FormField

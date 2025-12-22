@@ -8,6 +8,8 @@ export { CustomSelect } from "./CustomSelect";
 export { CustomSwitch } from "./CustomSwitch";
 export { EditFeedDialog } from "./EditFeedDialog";
 export { FeedCollapsibleItem } from "./FeedCollapsibleItem";
+export { FeedIconItem } from "./FeedIconItem";
+export { FeedPopover } from "./FeedPopover";
 export { FormField } from "./FormField";
 export { MenuBar } from "./MenuBar";
 export { DeleteConfirmDialog } from "./RemoveFeedDialog";

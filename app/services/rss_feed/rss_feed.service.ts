@@ -9,6 +9,7 @@ export interface RssFeedDoc {
   name: string;
   category: string;
   url: string;
+  website_url: string;
   status: string;
   last_fetched: bigint;
   failure_count: number;
@@ -29,14 +30,16 @@ export class RssFeedService extends Context.Tag("RssFeedService")<
       user_id: Id<"users">,
       name: string,
       category: string,
-      url: string
+      url: string,
+      website_url: string
     ) => Effect.Effect<Id<"rss_feed">, RssFeedMutationError | RssFeedValidationError>;
 
     readonly update_rss_feed: (
       rss_feed_id: Id<"rss_feed">,
       name: string,
       category: string,
-      url: string
+      url: string,
+      website_url: string
     ) => Effect.Effect<Id<"rss_feed">, RssFeedMutationError | RssFeedValidationError>;
 
     readonly delete_rss_feed: (

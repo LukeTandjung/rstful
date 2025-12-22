@@ -1,41 +1,142 @@
-import { Avatar } from "@base-ui-components/react/avatar";
 import { NavigationMenu } from "@base-ui-components/react/navigation-menu";
 import { Separator } from "@base-ui-components/react/separator";
 import { Link, useLocation } from "react-router";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { Effect } from "effect";
+import { api } from "convex/_generated/api";
+import type { Id, Doc } from "convex/_generated/dataModel";
+import { FeedPopover } from "./FeedPopover";
 import { useHighlighter } from "services/highlighter";
+import { RssFeedService, make_rss_feed_service_live } from "services/rss_feed";
 
 interface MenuBarProps {
   userName?: string | undefined;
+  userId?: Id<"users"> | undefined;
 }
 
-export function MenuBar({ userName }: MenuBarProps) {
+export function MenuBar({ userName, userId }: MenuBarProps) {
   const location = useLocation();
   const hlFeeds = useHighlighter();
   const hlStarred = useHighlighter();
   const hlChat = useHighlighter();
   const hlSettings = useHighlighter();
 
+  // Query feeds and articles
+  const feeds = useQuery(
+    api.rss_feed.get_rss_feed,
+    userId ? { user_id: userId } : "skip"
+  );
+  const cachedArticles = useQuery(
+    api.cached_content.get_cached_articles,
+    userId ? { user_id: userId } : "skip"
+  );
+
+  // Get mutation and action functions
+  const postRssFeed = useMutation(api.rss_feed.post_rss_feed);
+  const putRssFeed = useMutation(api.rss_feed.put_rss_feed);
+  const deleteRssFeed = useMutation(api.rss_feed.delete_rss_feed);
+  const fetchUserFeeds = useAction(api.rss_fetcher.fetch_user_feeds);
+  const refreshFeed = useAction(api.rss_fetcher.fetch_single_feed_action);
+
+  // Create the service Layer
+  const RssFeedServiceLayer = make_rss_feed_service_live(
+    postRssFeed,
+    putRssFeed,
+    deleteRssFeed,
+    fetchUserFeeds,
+    refreshFeed
+  );
+
+  const feedsList = feeds ?? [];
+
+  // Calculate unread counts
+  const unreadCountByFeed = (cachedArticles ?? []).reduce(
+    (acc: Record<string, number>, article: Doc<"cached_content">) => {
+      if (!article.is_read && article.rss_feed_id) {
+        acc[article.rss_feed_id] = (acc[article.rss_feed_id] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
+  const totalUnread = (cachedArticles ?? []).filter((a) => !a.is_read).length;
+
+  const handleRefreshFeed = (feedId: Id<"rss_feed">) => {
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.refresh_feed(feedId)),
+      Effect.tap(() =>
+        Effect.sync(() => console.log("Feed refreshed successfully"))
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to refresh feed:", error))
+      )
+    );
+    Effect.runPromise(program);
+  };
+
+  const handleAddFeed = (name: string, category: string, url: string, website_url: string) => {
+    if (!userId) {
+      console.error("Cannot add feed: user not authenticated");
+      return;
+    }
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.create_rss_feed(userId, name, category, url, website_url)),
+      Effect.tap((newFeedId) =>
+        Effect.sync(() => console.log("Feed created with ID:", newFeedId))
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to add feed:", error))
+      )
+    );
+    Effect.runPromise(program);
+  };
+
+  const handleEditFeed = (feedId: Id<"rss_feed">, name: string, category: string, url: string, website_url: string) => {
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.update_rss_feed(feedId, name, category, url, website_url)),
+      Effect.tap(() =>
+        Effect.sync(() => console.log("Feed updated successfully"))
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to update feed:", error))
+      )
+    );
+    Effect.runPromise(program);
+  };
+
+  const handleRemoveFeed = (feedId: Id<"rss_feed">) => {
+    const program = RssFeedService.pipe(
+      Effect.flatMap((service) => service.delete_rss_feed(feedId)),
+      Effect.tap(() =>
+        Effect.sync(() => console.log("Feed deleted successfully"))
+      ),
+      Effect.provide(RssFeedServiceLayer),
+      Effect.catchAll((error) =>
+        Effect.sync(() => console.error("Failed to delete feed:", error))
+      )
+    );
+    Effect.runPromise(program);
+  };
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  const getInitials = (name?: string) => {
-    if (!name) return "??";
-    return name.slice(0, 2).toUpperCase();
-  };
-
   return (
     <div className="flex items-center justify-between w-full">
-      <Avatar.Root className="size-14 rounded-full bg-background-alt">
-        <Avatar.Image
-          src="./rstful.svg"
-          alt="RSS Reader"
-          className="size-full"
-        />
-        <Avatar.Fallback className="size-full flex items-center justify-center bg-background-alt text-text font-medium text-lg rounded-full">
-          {getInitials(userName)}
-        </Avatar.Fallback>
-      </Avatar.Root>
+      <FeedPopover
+        feeds={feedsList}
+        unreadCountByFeed={unreadCountByFeed}
+        totalUnread={totalUnread}
+        userName={userName}
+        onRefresh={handleRefreshFeed}
+        onEdit={handleEditFeed}
+        onRemove={handleRemoveFeed}
+        onAdd={handleAddFeed}
+      />
 
       <div className="flex items-stretch">
         <NavigationMenu.Root className="flex h-full">
