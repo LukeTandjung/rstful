@@ -180,10 +180,7 @@ export default function Home() {
       >
         <ScrollArea.Root className="flex grow min-h-0 w-full">
           <ScrollArea.Viewport className="flex grow min-h-0 p-4">
-            <ArticleReader
-              article={selectedArticle}
-              onToggleStar={handleToggleStar}
-            />
+            <ArticleReader article={selectedArticle} />
           </ScrollArea.Viewport>
         </ScrollArea.Root>
       </SectionCard>

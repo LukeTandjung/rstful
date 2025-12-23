@@ -1,12 +1,10 @@
 import { Avatar } from "@base-ui-components/react/avatar";
 import { Popover } from "@base-ui-components/react/popover";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
-import { PlusIcon } from "@heroicons/react/16/solid";
 import { FeedIconItem } from "./FeedIconItem";
 import { AddFeedDialog } from "./AddFeedDialog";
 import type { RssFeed } from "types";
 import type { Id } from "convex/_generated/dataModel";
-import { useHighlighter } from "services/highlighter";
 
 interface FeedPopoverProps {
   feeds: Array<RssFeed>;
@@ -40,8 +38,6 @@ export function FeedPopover({
   onRemove,
   onAdd,
 }: FeedPopoverProps) {
-  const hl = useHighlighter();
-
   const getInitials = (name?: string) => {
     if (!name) return "??";
     return name.slice(0, 2).toUpperCase();
@@ -63,15 +59,7 @@ export function FeedPopover({
               </Avatar.Fallback>
             </Avatar.Root>
             {totalUnread > 0 && (
-              <span
-                style={
-                  {
-                    "--hl-bg": hl.bg,
-                    "--hl-text": hl.text,
-                  } as React.CSSProperties
-                }
-                className="absolute -top-1 -right-1 bg-(--hl-bg) text-(--hl-text) text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1"
-              >
+              <span className="absolute -top-1 -right-1 bg-error text-background text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1">
                 {totalUnread > 99 ? "99+" : totalUnread}
               </span>
             )}
@@ -82,8 +70,8 @@ export function FeedPopover({
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={8}>
           <Popover.Popup className="bg-background-alt rounded-lg p-3 shadow-lg flex flex-col gap-3 max-h-80">
-            <ScrollArea.Root className="flex-1 min-h-0">
-              <ScrollArea.Viewport className="max-h-60">
+            <ScrollArea.Root className="flex-1 min-h-0 -mt-1 -mr-1">
+              <ScrollArea.Viewport className="max-h-60 pt-1 pr-1">
                 <div className="flex flex-col gap-2">
                   {feeds.length === 0 ? (
                     <div className="text-text-alt text-sm px-2 py-4">
@@ -105,22 +93,7 @@ export function FeedPopover({
               </ScrollArea.Viewport>
             </ScrollArea.Root>
 
-            <AddFeedDialog
-              trigger={
-                <button
-                  style={
-                    {
-                      "--hl-bg": hl.bg,
-                      "--hl-text": hl.text,
-                    } as React.CSSProperties
-                  }
-                  className="size-10 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
-                >
-                  <PlusIcon className="size-5 text-(--hl-text)" />
-                </button>
-              }
-              onAdd={onAdd}
-            />
+            <AddFeedDialog onAdd={onAdd} />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

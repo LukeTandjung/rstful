@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui-components/react/dialog";
+import { PlusIcon } from "@heroicons/react/16/solid";
 import { FormField } from "./FormField";
 import { CustomSelect } from "./CustomSelect";
-import type { ReactNode } from "react";
 import { useHighlighter } from "services/highlighter";
 
 interface AddFeedDialogProps {
-  trigger: ReactNode;
   onAdd?: (name: string, category: string, url: string, website_url: string) => void;
 }
 
-export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
+export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
   const [open, setOpen] = useState(false);
   const hl = useHighlighter();
 
@@ -32,9 +31,9 @@ export function AddFeedDialog({ trigger, onAdd }: AddFeedDialogProps) {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         style={{ "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties}
-        className="bg-(--hl-bg) text-(--hl-text) px-3 py-2 rounded-lg font-medium text-lg leading-7 w-fit"
+        className="size-10 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
       >
-        {trigger}
+        <PlusIcon className="size-5 text-(--hl-text)" />
       </Dialog.Trigger>
 
       <Dialog.Portal>

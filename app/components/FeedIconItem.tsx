@@ -2,7 +2,6 @@ import { Tooltip } from "@base-ui-components/react/tooltip";
 import { EditFeedDialog } from "./EditFeedDialog";
 import type { RssFeed } from "types";
 import type { Id } from "convex/_generated/dataModel";
-import { useHighlighter } from "services/highlighter";
 
 interface FeedIconItemProps {
   feed: RssFeed;
@@ -19,7 +18,6 @@ export function FeedIconItem({
   onEdit,
   onRemove,
 }: FeedIconItemProps) {
-  const hl = useHighlighter();
 
   const getFaviconUrl = (websiteUrl: string) => {
     try {
@@ -47,10 +45,7 @@ export function FeedIconItem({
                   className="size-6 rounded"
                 />
                 {unreadCount > 0 && (
-                  <span
-                    style={{ "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties}
-                    className="absolute -top-1 -right-1 bg-(--hl-bg) text-(--hl-text) text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1"
-                  >
+                  <span className="absolute -top-1 -right-1 bg-error text-background text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
