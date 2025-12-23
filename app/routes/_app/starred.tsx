@@ -61,7 +61,7 @@ export default function Starred() {
         icon={<StarIcon className="size-7 text-text" />}
         title="Starred Articles"
         description={`${starredArticles.length} starred ${starredArticles.length === 1 ? "article" : "articles"}`}
-        className="md:w-1/2 md:min-h-0"
+        className="md:w-1/3 md:min-h-0"
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -105,14 +105,11 @@ export default function Starred() {
         description={
           selectedArticle ? selectedArticle.title : "No article selected"
         }
-        className="md:w-1/2 md:min-h-0"
+        className="md:w-2/3 md:min-h-0"
       >
         <ScrollArea.Root className="flex grow min-h-0 w-full">
           <ScrollArea.Viewport className="flex grow min-h-0 p-4">
-            <ArticleReader
-              article={selectedArticle}
-              onToggleStar={handleToggleStar}
-            />
+            <ArticleReader article={selectedArticle} />
           </ScrollArea.Viewport>
         </ScrollArea.Root>
       </SectionCard>
