@@ -7,7 +7,13 @@ interface FeedIconItemProps {
   feed: RssFeed;
   unreadCount: number;
   onRefresh: (feedId: Id<"rss_feed">) => void;
-  onEdit: (feedId: Id<"rss_feed">, name: string, category: string, url: string, website_url: string) => void;
+  onEdit: (
+    feedId: Id<"rss_feed">,
+    name: string,
+    category: string,
+    url: string,
+    website_url: string,
+  ) => void;
   onRemove: (feedId: Id<"rss_feed">) => void;
 }
 
@@ -18,7 +24,6 @@ export function FeedIconItem({
   onEdit,
   onRemove,
 }: FeedIconItemProps) {
-
   const getFaviconUrl = (websiteUrl: string) => {
     try {
       const url = new URL(websiteUrl);
@@ -38,11 +43,11 @@ export function FeedIconItem({
         trigger={
           <Tooltip.Trigger
             render={
-              <button className="relative size-10 rounded-lg bg-background-select flex items-center justify-center hover:bg-surface-alt transition-colors">
+              <button className="relative size-8 rounded-lg bg-background flex items-center justify-center hover:bg-surface-alt transition-colors">
                 <img
                   src={getFaviconUrl(feed.website_url)}
                   alt={feed.name}
-                  className="size-6 rounded"
+                  className="size-8 rounded"
                 />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-error text-background text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1">

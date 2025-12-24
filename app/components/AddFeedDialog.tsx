@@ -6,7 +6,12 @@ import { CustomSelect } from "./CustomSelect";
 import { useHighlighter } from "services/highlighter";
 
 interface AddFeedDialogProps {
-  onAdd?: (name: string, category: string, url: string, website_url: string) => void;
+  onAdd?: (
+    name: string,
+    category: string,
+    url: string,
+    website_url: string,
+  ) => void;
 }
 
 export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
@@ -21,7 +26,12 @@ export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
     const website_url = formData.get("website_url") as string;
     const category = formData.get("category") as string;
 
-    console.log("handleSubmit called with:", { name, url, website_url, category });
+    console.log("handleSubmit called with:", {
+      name,
+      url,
+      website_url,
+      category,
+    });
     onAdd?.(name, category, url, website_url);
     setOpen(false);
     e.currentTarget.reset();
@@ -30,8 +40,10 @@ export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
-        style={{ "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties}
-        className="size-10 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
+        style={
+          { "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties
+        }
+        className="size-8 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
       >
         <PlusIcon className="size-5 text-(--hl-text)" />
       </Dialog.Trigger>
@@ -49,11 +61,7 @@ export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
 
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3.5 py-2.5">
-              <FormField
-                name="name"
-                label="Name"
-                placeholder="Feed name"
-              />
+              <FormField name="name" label="Name" placeholder="Feed name" />
 
               <FormField
                 name="website_url"
