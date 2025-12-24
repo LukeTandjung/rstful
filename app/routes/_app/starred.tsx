@@ -33,6 +33,17 @@ export default function Starred() {
     user_id ? { user_id } : "skip"
   );
 
+  // Query feeds to get feed names
+  const feeds = useQuery(
+    api.rss_feed.get_rss_feed,
+    user_id ? { user_id } : "skip"
+  );
+
+  // Create lookup map from feed ID to feed name
+  const feedNameMap = new Map(
+    feeds?.map((feed) => [feed._id, feed.name]) ?? []
+  );
+
   const deleteSavedContent = useMutation(api.saved_content.delete_saved_content);
 
   const starredArticles = savedArticles ?? [];
@@ -90,6 +101,11 @@ export default function Starred() {
                     onSelect={handleArticleSelect}
                     onToggleStar={handleToggleStar}
                     isStarred={true}
+                    feedName={
+                      article.rss_feed_id
+                        ? feedNameMap.get(article.rss_feed_id) ?? "Unknown Feed"
+                        : "Unknown Feed"
+                    }
                   />
                 ))}
               </div>

@@ -54,7 +54,7 @@ export default function Home() {
   const handleLinkClick = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
     setSelectedArticle(article);
 
-    if (!user_id || article.is_read) return;
+    if (!user_id || ("is_read" in article && article.is_read)) return;
 
     // Only mark cached_content articles as read
     const cachedArticle = articleMap.get(article._id as Id<"cached_content">);
