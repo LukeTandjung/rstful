@@ -33,7 +33,6 @@ export const post_saved_content = mutation({
       ...(args.author && { author: args.author }),
       ...(args.pub_date && { pub_date: args.pub_date }),
       ...(args.rss_feed_id && { rss_feed_id: args.rss_feed_id }),
-      is_read: true, // Saved content is considered read
     });
     return new_saved_content_id;
   },

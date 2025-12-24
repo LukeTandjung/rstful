@@ -32,7 +32,7 @@ export default defineSchema({
     name: v.string(),
     category: v.string(),
     url: v.string(),
-    website_url: v.string(),
+    website_url: v.optional(v.string()),
     status: v.string(),
     last_fetched: v.int64(),
     failure_count: v.optional(v.number()),
@@ -46,7 +46,6 @@ export default defineSchema({
     content: v.string(),
     link: v.string(),
     pub_date: v.optional(v.int64()),
-    is_read: v.boolean(),
     author: v.optional(v.string()),
   })
     .index("by_user_id", ["user_id"])
