@@ -35,14 +35,16 @@ export function ArticleListItem({
 
   return (
     <div
-      className={`border border-border-unfocus border-solid flex flex-col gap-2 p-3.5 rounded-lg w-full cursor-pointer transition-colors hover:bg-surface-alt ${!article.is_read ? "border-border-focus" : ""}`}
+      className={`border border-border-unfocus border-solid flex flex-col gap-2 p-3.5 rounded-lg w-full cursor-pointer transition-colors hover:bg-surface-alt ${"is_read" in article && !article.is_read ? "border-border-focus" : ""}`}
       onClick={() => onSelect?.(article)}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div
-            className={`font-medium text-base leading-6 [overflow-wrap:anywhere] ${
-              article.is_read ? "text-text-alt" : "text-text"
+            className={`text-base leading-6 wrap-anywhere ${
+              "is_read" in article && !article.is_read
+                ? "text-text font-medium"
+                : "text-text-alt font-normal"
             }`}
           >
             {article.title}
