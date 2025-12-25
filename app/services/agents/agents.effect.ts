@@ -168,6 +168,170 @@ const wrapJsonSchema = (schema: unknown, name: string) => {
   };
 };
 
+// Helper to pick a random element from an array
+const pickRandom = <T>(arr: Array<T>): T =>
+  arr[Math.floor(Math.random() * arr.length)];
+
+// Helper to generate a random number in range
+const randomInRange = (min: number, max: number): number =>
+  Math.round((Math.random() * (max - min) + min) * 10) / 10;
+
+// Generate a random chemistry criteria for users who don't answer questions properly
+export const generateRandomChemistryCriteria = (): ChemistryCriteria => ({
+  epistemic_architecture: {
+    primary_mode: pickRandom([
+      "first_principles",
+      "empirical",
+      "narrative",
+      "dialectical",
+      "intuitive",
+    ]),
+    evidence_hierarchy: pickRandom([
+      ["data", "expert opinion", "anecdotes"],
+      ["logic", "empirical evidence", "tradition"],
+      ["personal experience", "scientific studies", "intuition"],
+    ]),
+    certainty_stance: pickRandom([
+      "seeking closure",
+      "embracing ambiguity",
+      "epistemic humility",
+      "radical skepticism",
+    ]),
+    knowledge_model: pickRandom([
+      "monolithic truth",
+      "perspectival shards",
+      "socially constructed",
+      "pragmatic instrument",
+    ]),
+  },
+  value_hierarchy: {
+    primary_good: pickRandom([
+      "truth",
+      "freedom",
+      "harmony",
+      "progress",
+      "justice",
+    ]),
+    non_negotiables: pickRandom([
+      ["honesty", "autonomy"],
+      ["fairness", "compassion"],
+      ["integrity", "growth"],
+    ]),
+    typical_tradeoffs: pickRandom([
+      "efficiency vs. thoroughness",
+      "individual vs. collective",
+      "stability vs. innovation",
+    ]),
+    moral_foundations: {
+      care_vs_harm: randomInRange(0.3, 0.9),
+      fairness_vs_cheating: randomInRange(0.3, 0.9),
+      loyalty_vs_betrayal: randomInRange(0.3, 0.9),
+      authority_vs_subversion: randomInRange(0.3, 0.9),
+      sanctity_vs_degradation: randomInRange(0.3, 0.9),
+      liberty_vs_oppression: randomInRange(0.3, 0.9),
+    },
+  },
+  cognitive_fingerprint: {
+    reasoning_pattern: pickRandom([
+      "deductive reduction",
+      "analogical mapping",
+      "constraint propagation",
+      "pattern synthesis",
+    ]),
+    abstraction_level: pickRandom([
+      "concrete operations",
+      "systems thinking",
+      "meta-theoretic",
+      "ontological",
+    ]),
+    recurrent_metaphors: pickRandom([
+      ["building", "growing"],
+      ["journey", "discovery"],
+      ["battle", "strategy"],
+    ]),
+    mental_toolkit: pickRandom([
+      ["first principles", "thought experiments"],
+      ["data analysis", "pattern recognition"],
+      ["storytelling", "analogies"],
+    ]),
+  },
+  temporal_orientation: {
+    past_weight: randomInRange(0.1, 0.5),
+    present_weight: randomInRange(0.2, 0.5),
+    future_weight: randomInRange(0.2, 0.5),
+    change_velocity: pickRandom([
+      "revolutionary",
+      "evolutionary",
+      "conservative",
+      "cyclical",
+    ]),
+  },
+  aspirational_vector: {
+    target_state: pickRandom([
+      "understanding",
+      "mastery",
+      "influence",
+      "contribution",
+    ]),
+    utopia_distance: randomInRange(0.3, 0.8),
+    action_orientation: pickRandom([
+      "theory",
+      "praxis",
+      "propaganda",
+      "community-building",
+    ]),
+  },
+  affective_signature: {
+    emotional_register: pickRandom([
+      "playful irreverence",
+      "grave responsibility",
+      "earnest optimism",
+      "detached analysis",
+    ]),
+    energy_level: pickRandom(["intense", "measured", "calm", "urgent"]),
+    conflict_stance: pickRandom([
+      "confrontational",
+      "conciliatory",
+      "avoidant",
+      "dialectical",
+    ]),
+  },
+  communication_geometry: {
+    density: pickRandom([
+      "terse aphorisms",
+      "dense paragraphs",
+      "exploratory threads",
+    ]),
+    formality: pickRandom([
+      "academic",
+      "conversational",
+      "technical slang",
+      "poetic",
+    ]),
+    audience_assumption: pickRandom([
+      "peer expert",
+      "educated layperson",
+      "student",
+      "adversary",
+    ]),
+  },
+  edge_or_center: {
+    contrarian_score: randomInRange(0.2, 0.8),
+    orthodoxy_alignment: pickRandom([
+      "dissident",
+      "reformer",
+      "insider",
+      "establishment",
+    ]),
+    risk_tolerance: pickRandom([
+      "revolutionary",
+      "experimental",
+      "cautious",
+      "conservative",
+    ]),
+  },
+});
+
 export const AgentRunnerLive = Layer.effect(
   AgentRunner,
   DedalusRunnerService.pipe(
@@ -709,18 +873,45 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             }
 
             // Either status is "complete" OR we're forcing complete because user already answered
-            const { compatibility_string, platform, chemistry_criteria } =
+            let { compatibility_string, platform, chemistry_criteria } =
               parserResult;
+
+            // Handle missing fields with fallbacks
             if (!compatibility_string || !platform || !chemistry_criteria) {
-              // If LLM still didn't provide fields after user answered, that's an error
-              return Effect.fail(
-                new DeepSearchError({
-                  message: alreadyAskedQuestions
-                    ? "Parser failed to extract required fields from user's answers"
-                    : "Parser returned complete status but missing required fields",
-                  phase: "parsing",
-                }),
-              );
+              if (alreadyAskedQuestions) {
+                // User didn't answer properly - use fallbacks
+                console.log(
+                  "Parser failed to extract fields from user answers, using fallbacks",
+                );
+
+                // Use cached criteria or generate random
+                if (!chemistry_criteria) {
+                  chemistry_criteria = cachedCriteria?.criteria ?? generateRandomChemistryCriteria();
+                  console.log(
+                    cachedCriteria
+                      ? "Using cached chemistry criteria"
+                      : "Generated random chemistry criteria",
+                  );
+                }
+
+                // Default platform and compatibility string if missing
+                if (!platform) {
+                  platform = "substack";
+                  console.log("Defaulting to platform: substack");
+                }
+                if (!compatibility_string) {
+                  compatibility_string = "interesting thinkers and writers";
+                  console.log("Using generic compatibility string");
+                }
+              } else {
+                // First interaction - shouldn't happen, but error if it does
+                return Effect.fail(
+                  new DeepSearchError({
+                    message: "Parser returned complete status but missing required fields",
+                    phase: "parsing",
+                  }),
+                );
+              }
             }
             // Emit acknowledgment before starting search
             return pipe(

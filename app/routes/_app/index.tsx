@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { Route } from "./+types/index";
 import type { Id, Doc } from "convex/_generated/dataModel";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { NewspaperIcon } from "@heroicons/react/16/solid";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
   SectionCard,
@@ -34,9 +34,20 @@ export default function Home() {
     user_id ? { user_id } : "skip"
   );
 
-  // Get cached articles for the user
-  const cachedArticles = useQuery(
-    api.cached_content.get_cached_articles,
+  // Get cached articles for the user (paginated, sorted by pub_date on server)
+  const {
+    results: cachedArticles,
+    status: paginationStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.cached_content.get_cached_articles_paginated,
+    user_id ? { user_id } : "skip",
+    { initialNumItems: 20 }
+  );
+
+  // Get total unread count from server
+  const unreadCount = useQuery(
+    api.cached_content.get_total_unread_count,
     user_id ? { user_id } : "skip"
   );
 
@@ -103,12 +114,9 @@ export default function Home() {
 
   const feedsList = feeds ?? [];
 
-  const articles = [...(cachedArticles ?? [])].sort((a, b) => {
-    const aDate = a.pub_date ? Number(a.pub_date) : a._creationTime;
-    const bDate = b.pub_date ? Number(b.pub_date) : b._creationTime;
-    return bDate - aDate; // newest first
-  });
-  const isLoadingArticles = cachedArticles === undefined;
+  // Articles are already sorted by pub_date on the server
+  const articles = cachedArticles ?? [];
+  const isLoadingArticles = paginationStatus === "LoadingFirstPage";
 
   // Helper to check if article is starred
   const savedLinks = new Set(savedArticles?.map((s) => s.link) ?? []);
@@ -128,13 +136,30 @@ export default function Home() {
     [savedArticles]
   );
 
+  // Infinite scroll: load more when near bottom
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl || paginationStatus !== "CanLoadMore") return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        loadMore(20);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, [paginationStatus, loadMore]);
+
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
       {/* Articles List Section */}
       <SectionCard
         icon={<NewspaperIcon className="size-7" />}
         title="Articles"
-        description={`${articles.filter((a: Doc<"cached_content">) => !a.is_read).length} unread`}
+        description={`${unreadCount ?? 0} unread`}
         className="md:w-1/3 md:min-h-0"
       >
         {isLoadingArticles ? (
@@ -151,7 +176,7 @@ export default function Home() {
           </div>
         ) : (
           <ScrollArea.Root className="flex grow min-h-0 w-full">
-            <ScrollArea.Viewport className="flex grow min-h-0">
+            <ScrollArea.Viewport ref={scrollRef} className="flex grow min-h-0">
               <div className="flex flex-col gap-3 grow min-h-0">
                 {articles.map((article: Doc<"cached_content">) => (
                     <ArticleListItem
@@ -163,6 +188,11 @@ export default function Home() {
                       isStarred={isArticleStarred(article)}
                     />
                   ))}
+                {paginationStatus === "LoadingMore" && (
+                  <div className="py-4 text-center text-sm text-text-alt">
+                    Loading more...
+                  </div>
+                )}
               </div>
             </ScrollArea.Viewport>
           </ScrollArea.Root>

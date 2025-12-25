@@ -71,6 +71,37 @@ async function fetchSavedArticles(userId: Id<"users">): Promise<string> {
   }
 }
 
+async function fetchCachedArticles(userId: Id<"users">): Promise<string> {
+  if (!convexClient) {
+    return "";
+  }
+
+  try {
+    // Fetch recent cached articles (limited to avoid too much context)
+    const cachedContent = await convexClient.query(
+      api.cached_content.get_cached_articles_paginated,
+      {
+        user_id: userId,
+        paginationOpts: { numItems: 50, cursor: null },
+      },
+    );
+
+    if (!cachedContent.page || cachedContent.page.length === 0) {
+      return "";
+    }
+
+    return cachedContent.page
+      .map(
+        (article) =>
+          `Title: ${article.title}\nDescription: ${article.description ?? ""}\nLink: ${article.link}`,
+      )
+      .join("\n\n---\n\n");
+  } catch (error) {
+    console.error("Error fetching cached articles:", error);
+    return "";
+  }
+}
+
 async function fetchChemistryEmbedding(userId: Id<"users">) {
   if (!convexClient) {
     return null;
@@ -210,9 +241,10 @@ export async function action({ request }: ActionFunctionArgs) {
           let responseText: string;
 
           if (searchResult.status === "needs_clarification") {
-            responseText = searchResult.questions
+            const questionsFormatted = searchResult.questions
               .map((q, i) => `${i + 1}. ${q}`)
               .join("\n\n");
+            responseText = `To find creators who think like you, I need to understand your perspective better. Please answer these questions:\n\n${questionsFormatted}\n\n(Just reply with your answers and I'll start the search!)`;
           } else if (searchResult.status === "impossible_criteria") {
             responseText = searchResult.suggestion;
           } else {
@@ -269,12 +301,29 @@ export async function action({ request }: ActionFunctionArgs) {
       },
     });
   } else {
-    // Regular mode - use saved articles context + search MCPs for full article content
-    context = userId ? await fetchSavedArticles(userId) : "";
+    // Regular mode - use saved + cached articles context + search MCPs for full article content
+    const [savedArticles, cachedArticles] = userId
+      ? await Promise.all([fetchSavedArticles(userId), fetchCachedArticles(userId)])
+      : ["", ""];
+
     mcpServers = ["joerup/exa-mcp", "simon-liang/brave-search-mcp"];
-    finalInput = context
-      ? `You have access to the user's saved articles. Use them to answer questions, and use search tools to fetch full article content when needed.\n\n<saved_articles>\n${context}\n</saved_articles>\n\nUser question: ${input}`
-      : input;
+
+    const hasSaved = savedArticles.length > 0;
+    const hasCached = cachedArticles.length > 0;
+
+    if (hasSaved || hasCached) {
+      let contextParts = [];
+      if (hasSaved) {
+        contextParts.push(`<saved_articles>\n${savedArticles}\n</saved_articles>`);
+      }
+      if (hasCached) {
+        contextParts.push(`<feed_articles>\n${cachedArticles}\n</feed_articles>`);
+      }
+      context = contextParts.join("\n\n");
+      finalInput = `You have access to the user's articles. Saved articles are ones the user has starred. Feed articles are from their RSS subscriptions. Use them to answer questions, and use search tools to fetch full article content when needed.\n\n${context}\n\nUser question: ${input}`;
+    } else {
+      finalInput = input;
+    }
   }
 
   // Handle direct responses (e.g., clarifying questions, X search results)
