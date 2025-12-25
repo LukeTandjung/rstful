@@ -15,6 +15,31 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useHighlighter } from "services/highlighter";
 
+// Helper to convert URLs in text to clickable links
+const linkifyText = (text: string): React.ReactNode => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      // Reset regex lastIndex since we're reusing it
+      urlRegex.lastIndex = 0;
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-link underline hover:text-link-hover"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 // localStorage helpers for persisting search state across page switches
 const SEARCH_STATE_KEY = "deep_search_state";
 
@@ -419,7 +444,7 @@ export default function Chat() {
                   >
                     <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
                       <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                        {message.content}
+                        {linkifyText(message.content)}
                       </div>
                     </div>
                   </div>
@@ -437,7 +462,7 @@ export default function Chat() {
                       <div className="flex w-full justify-start">
                         <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
                           <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                            {streamingContent}
+                            {linkifyText(streamingContent)}
                           </div>
                         </div>
                       </div>

@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 export const get_cached_articles = query({
@@ -10,6 +11,20 @@ export const get_cached_articles = query({
       .order("desc")
       .collect();
     return articles;
+  },
+});
+
+export const get_cached_articles_paginated = query({
+  args: {
+    user_id: v.id("users"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("cached_content")
+      .withIndex("by_user_id_pub_date", (q) => q.eq("user_id", args.user_id))
+      .order("desc")
+      .paginate(args.paginationOpts);
   },
 });
 

@@ -32,7 +32,7 @@ export default defineSchema({
     name: v.string(),
     category: v.string(),
     url: v.string(),
-    website_url: v.optional(v.string()),
+    website_url: v.string(),
     status: v.string(),
     last_fetched: v.int64(),
     failure_count: v.optional(v.number()),
@@ -64,7 +64,8 @@ export default defineSchema({
   })
     .index("by_user_id", ["user_id"])
     .index("by_rss_feed_id", ["rss_feed_id"])
-    .index("by_link", ["link"]),
+    .index("by_link", ["link"])
+    .index("by_user_id_pub_date", ["user_id", "pub_date"]),
 
   group_chat: defineTable({
     name: v.string(),
