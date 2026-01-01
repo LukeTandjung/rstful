@@ -20,6 +20,7 @@ export function MenuBar({ userName, userId }: MenuBarProps) {
   const hlStarred = useHighlighter();
   const hlChat = useHighlighter();
   const hlSettings = useHighlighter();
+  const hlContact = useHighlighter();
 
   // Query feeds and articles
   const feeds = useQuery(
@@ -212,6 +213,22 @@ export function MenuBar({ userName, userId }: MenuBarProps) {
                   Settings
                 </NavigationMenu.Trigger>
               </Link>
+            </NavigationMenu.Item>
+
+            <NavigationMenu.Item className="flex items-center">
+              <a href="mailto:support@rstful.com">
+                <NavigationMenu.Trigger
+                  style={
+                    {
+                      "--hl-bg": hlContact.bg,
+                      "--hl-text": hlContact.text,
+                    } as React.CSSProperties
+                  }
+                  className="flex items-center px-3 py-2 rounded-lg font-medium text-lg leading-7 text-text transition-colors hover:bg-(--hl-bg) hover:text-(--hl-text)"
+                >
+                  Contact
+                </NavigationMenu.Trigger>
+              </a>
             </NavigationMenu.Item>
           </NavigationMenu.List>
         </NavigationMenu.Root>
