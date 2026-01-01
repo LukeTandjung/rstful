@@ -24,8 +24,8 @@ export const fetch_user_feeds = action({
     return {
       success: true,
       total: feeds.length,
-      successful: results.filter((r) => r.status === "fulfilled").length,
-      failed: results.filter((r) => r.status === "rejected").length,
+      successful: results.filter((r: PromiseSettledResult<unknown>) => r.status === "fulfilled").length,
+      failed: results.filter((r: PromiseSettledResult<unknown>) => r.status === "rejected").length,
     };
   },
 });

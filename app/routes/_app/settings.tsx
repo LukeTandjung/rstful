@@ -1,5 +1,4 @@
 import type { Route } from "./+types/settings";
-import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
 import { SectionCard, TokenProgress } from "components";
@@ -8,7 +7,7 @@ import * as React from "react";
 import { Effect } from "effect";
 import { AuthService } from "services/auth";
 import { appRuntime } from "services/runtime";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import { downloadOpml, parseOpml, readOpmlFile } from "services/opml";
 import { useHighlighter } from "services/highlighter";
@@ -27,17 +26,28 @@ export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const hlBuyTokens = useHighlighter()
-  const hlExport = useHighlighter()
-  const hlImport = useHighlighter()
-  const hlLogout = useHighlighter()
+  const hlManageSubscription = useHighlighter();
+  const hlExport = useHighlighter();
+  const hlImport = useHighlighter();
+  const hlLogout = useHighlighter();
 
   const viewer = useQuery(api.auth.currentUser);
+  const tokenBalance = useQuery(api.tokens.getTokenBalance);
   const feeds = useQuery(
     api.rss_feed.get_feeds_for_export,
-    viewer?._id ? { user_id: viewer._id } : "skip"
+    viewer?._id ? { user_id: viewer._id } : "skip",
   );
   const importFeeds = useMutation(api.rss_feed.import_feeds);
+  const generateCustomerPortalUrl = useAction(
+    api.polar.generateCustomerPortalUrl,
+  );
+
+  const handleManageSubscription = async () => {
+    const result = await generateCustomerPortalUrl();
+    if (result?.url) {
+      window.location.href = result.url;
+    }
+  };
 
   const handleExport = () => {
     if (!feeds || feeds.length === 0) {
@@ -74,7 +84,9 @@ export default function Settings() {
         feeds: parsedFeeds,
       });
 
-      alert(`Imported ${result.imported} feeds, skipped ${result.skipped} duplicates`);
+      alert(
+        `Imported ${result.imported} feeds, skipped ${result.skipped} duplicates`,
+      );
     } catch (err) {
       alert(`Failed to import: ${err}`);
     }
@@ -116,134 +128,176 @@ export default function Settings() {
         description="Configure your RSS Reader preferences"
         className="md:min-h-0"
       >
-        <ScrollArea.Root className="flex grow min-h-0 w-full">
-          <ScrollArea.Viewport className="flex grow min-h-0">
-            <div className="flex flex-col gap-8 p-4">
-              {/* Token Usage Section */}
-              <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-8 p-4 w-full overflow-y-auto">
+          {/* Token Usage Section */}
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-lg leading-7 text-text">
+                Token Usage
+              </h3>
+              <p className="font-normal text-sm leading-6 text-text-alt">
+                Track your monthly usage
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-6 pl-4 w-full">
+              <TokenProgress
+                label="Messages consumed"
+                current={tokenBalance?.messagesUsed ?? 0}
+                max={tokenBalance?.messagesLimit ?? 500}
+                period="this month"
+              />
+
+              <TokenProgress
+                label="Deep Search consumed"
+                current={tokenBalance?.deepSearchUsed ?? 0}
+                max={tokenBalance?.deepSearchLimit ?? 30}
+                period="this month"
+              />
+            </div>
+          </div>
+
+          {/* Subscription Section */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-lg leading-7 text-text">
+                Subscription
+              </h3>
+              <p className="font-normal text-sm leading-6 text-text-alt">
+                Manage your subscription and billing
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 pl-4">
+              <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
                 <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-lg leading-7 text-text">
-                    Token Usage
-                  </h3>
-                  <p className="font-normal text-sm leading-6 text-text-alt">
-                    Track your AI chat token usage
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-6 pl-4">
-                  <TokenProgress
-                    label="Chat Tokens"
-                    current={2500}
-                    max={10000}
-                    period="this month"
-                  />
-
-                  <div className="flex items-center gap-4">
-                    <Button
-                      style={{ '--hl-bg': hlBuyTokens.bg, '--hl-text': hlBuyTokens.text } as React.CSSProperties}
-                      className="bg-(--hl-bg) text-(--hl-text) px-4 py-2 rounded-lg font-medium text-base leading-7 transition-colors"
-                    >
-                      Buy More Tokens
-                    </Button>
-                    <p className="font-normal text-sm leading-6 text-text-alt">
-                      Need more? Purchase additional tokens for extended AI chat
-                      usage.
-                    </p>
+                  <div className="font-medium text-base leading-6 text-text">
+                    Manage subscription
+                  </div>
+                  <div className="font-normal text-sm leading-5 text-text-alt">
+                    Update payment method, view invoices, or cancel
                   </div>
                 </div>
-              </div>
-
-              {/* Data Management */}
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-lg leading-7 text-text">
-                    Data Management
-                  </h3>
-                  <p className="font-normal text-sm leading-6 text-text-alt">
-                    Manage your feeds and articles data
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-4 pl-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Export feeds (OPML)
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Export your feed subscriptions as OPML file
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleExport}
-                      style={{ '--hl-bg': hlExport.bg, '--hl-text': hlExport.text } as React.CSSProperties}
-                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
-                    >
-                      Export
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Import feeds (OPML)
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Import feed subscriptions from OPML file
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleImportClick}
-                      style={{ '--hl-bg': hlImport.bg, '--hl-text': hlImport.text } as React.CSSProperties}
-                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
-                    >
-                      Import
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".opml,.xml"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Account Section */}
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-lg leading-7 text-text">
-                    Account
-                  </h3>
-                  <p className="font-normal text-sm leading-6 text-text-alt">
-                    Manage your account settings
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-4 pl-4">
-                  <div className="flex items-center justify-between py-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="font-medium text-base leading-6 text-text">
-                        Sign out
-                      </div>
-                      <div className="font-normal text-sm leading-5 text-text-alt">
-                        Sign out of your account
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleLogout}
-                      style={{ '--hl-bg': hlLogout.bg, '--hl-text': hlLogout.text } as React.CSSProperties}
-                      className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
-                    >
-                      Logout
-                    </Button>
-                  </div>
-                </div>
+                <Button
+                  onClick={handleManageSubscription}
+                  style={
+                    {
+                      "--hl-bg": hlManageSubscription.bg,
+                      "--hl-text": hlManageSubscription.text,
+                    } as React.CSSProperties
+                  }
+                  className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
+                >
+                  Manage
+                </Button>
               </div>
             </div>
-          </ScrollArea.Viewport>
-        </ScrollArea.Root>
+          </div>
+
+          {/* Data Management */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-lg leading-7 text-text">
+                Data Management
+              </h3>
+              <p className="font-normal text-sm leading-6 text-text-alt">
+                Manage your feeds and articles data
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 pl-4">
+              <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
+                <div className="flex flex-col gap-1">
+                  <div className="font-medium text-base leading-6 text-text">
+                    Export feeds (OPML)
+                  </div>
+                  <div className="font-normal text-sm leading-5 text-text-alt">
+                    Export your feed subscriptions as OPML file
+                  </div>
+                </div>
+                <Button
+                  onClick={handleExport}
+                  style={
+                    {
+                      "--hl-bg": hlExport.bg,
+                      "--hl-text": hlExport.text,
+                    } as React.CSSProperties
+                  }
+                  className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
+                >
+                  Export
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between py-3 border-b border-border-unfocus">
+                <div className="flex flex-col gap-1">
+                  <div className="font-medium text-base leading-6 text-text">
+                    Import feeds (OPML)
+                  </div>
+                  <div className="font-normal text-sm leading-5 text-text-alt">
+                    Import feed subscriptions from OPML file
+                  </div>
+                </div>
+                <Button
+                  onClick={handleImportClick}
+                  style={
+                    {
+                      "--hl-bg": hlImport.bg,
+                      "--hl-text": hlImport.text,
+                    } as React.CSSProperties
+                  }
+                  className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
+                >
+                  Import
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".opml,.xml"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Account Section */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-lg leading-7 text-text">
+                Account
+              </h3>
+              <p className="font-normal text-sm leading-6 text-text-alt">
+                Manage your account settings
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 pl-4">
+              <div className="flex items-center justify-between py-3">
+                <div className="flex flex-col gap-1">
+                  <div className="font-medium text-base leading-6 text-text">
+                    Sign out
+                  </div>
+                  <div className="font-normal text-sm leading-5 text-text-alt">
+                    Sign out of your account
+                  </div>
+                </div>
+                <Button
+                  onClick={handleLogout}
+                  style={
+                    {
+                      "--hl-bg": hlLogout.bg,
+                      "--hl-text": hlLogout.text,
+                    } as React.CSSProperties
+                  }
+                  className="px-4 py-2 rounded-lg bg-(--hl-bg) text-(--hl-text) font-medium text-sm transition-colors"
+                >
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </SectionCard>
     </div>
   );
