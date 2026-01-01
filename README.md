@@ -1,97 +1,127 @@
-# Welcome to React Router!
+# rstful
 
-A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+A modern RSS reader built with React Router, Convex, Tailwind, BaseUI, Resend, Polar, TypeScript, and Effect-TS.
 
 ## Getting Started
 
+### Prerequisites
+
+- [Bun](https://bun.sh)
+- A [Convex](https://convex.dev) account
+- A [Resend](https://resend.com) account (for email)
+- A [Polar](https://polar.sh) account (for payments)
+- A [Dedalus Labs](https://dedalus.dev) account
+
 ### Installation
 
-Install the dependencies:
-
 ```bash
-npm install
+bun install
 ```
 
-### Development
+### Environment Variables
 
-Start the development server with HMR:
+Create a `.env.local` file for local development:
 
 ```bash
-npm run dev
+# Convex
+CONVEX_DEPLOYMENT=dev:<your-dev-deployment>
+VITE_CONVEX_URL=https://<your-dev-deployment>.convex.cloud
+
+# Site URL (used for OAuth redirects and email links)
+SITE_URL=http://localhost:5173
+
+# JWT Keys (generate with: bun utils/generateKeys.mjs)
+JWT_PRIVATE_KEY=<generated-private-key>
+JWKS=<generated-jwks>
+
+# Resend (for sending emails)
+AUTH_RESEND_KEY=re_xxxxxxxx
+
+# Dedalus Labs
+DEDALUS_API_KEY=<your-dedalus-api-key>
+
+# Polar (payments)
+POLAR_ORGANIZATION_TOKEN=<your-polar-org-token>
+POLAR_WEBHOOK_SECRET=<your-polar-webhook-secret>
+POLAR_PRODUCT_ID=<your-polar-product-id>
+POLAR_SERVER=sandbox  # use "production" for live
+```
+
+#### Generating JWT Keys
+
+```bash
+bun utils/generateKeys.mjs
+```
+
+Copy the output values into your environment variables.
+
+### Local Development
+
+1. Start the Convex development server:
+
+```bash
+bunx convex dev
+```
+
+2. In a separate terminal, start the frontend:
+
+```bash
+bun run dev
 ```
 
 Your application will be available at `http://localhost:5173`.
 
-## Building for Production
+## Production Deployment (Vercel)
 
-Create a production build:
+### 1. Deploy Convex Backend
+
+Deploy your Convex backend to production:
 
 ```bash
-npm run build
+bunx convex deploy
 ```
 
-## Deployment
+Set the following environment variables in the [Convex dashboard](https://dashboard.convex.dev):
 
-### Convex Setup (Required)
+| Variable | Description |
+|----------|-------------|
+| `SITE_URL` | Your production domain (e.g., `https://yourdomain.com`) |
+| `JWT_PRIVATE_KEY` | Generated private key for auth |
+| `JWKS` | Generated JWKS for auth |
+| `AUTH_RESEND_KEY` | Resend API key |
+| `DEDALUS_API_KEY` | Dedalus Labs production API key |
+| `POLAR_ORGANIZATION_TOKEN` | Polar production org token |
+| `POLAR_WEBHOOK_SECRET` | Polar production webhook secret |
+| `POLAR_PRODUCT_ID` | Polar production product ID |
+| `POLAR_SERVER` | Set to `production` |
 
-After deploying Convex to production, you must sync Polar products:
+### 2. Sync Polar Products
+
+After deploying Convex, sync your Polar products:
 
 ```bash
 bunx convex run polar:syncProducts --prod
 ```
 
-This is a one-time step that populates the products table. After this, products will stay in sync automatically via webhooks.
+This is a one-time step. Products stay in sync via webhooks afterward.
 
-### Docker Deployment
+### 3. Deploy to Vercel
 
-To build and run using Docker:
+1. Push your code to GitHub
+2. Import the repository in [Vercel](https://vercel.com)
+3. Set the following environment variables in Vercel:
+
+| Variable | Value |
+|----------|-------|
+| `CONVEX_DEPLOYMENT` | Your production Convex deployment name |
+| `VITE_CONVEX_URL` | Your production Convex URL (e.g., `https://<deployment>.convex.cloud`) |
+
+4. Deploy
+
+You can also use the [Convex Vercel integration](https://docs.convex.dev/production/hosting/vercel) to automatically sync deployments.
+
+## Building for Production
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+bun run build
 ```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
