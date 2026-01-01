@@ -1,6 +1,6 @@
 # rstful
 
-<img src="./public/rstful.svg" align="left" width="200" alt="Sakhal logo of a deer and a dead tree" style="margin-right: 20px; margin-bottom: 10px;">
+<img src="./public/favicon.ico" align="left" width="200" alt="Sakhal logo of a deer and a dead tree" style="margin-right: 20px; margin-bottom: 10px;">
 
 rstful is a modern agentic RSS reader built with React Router, Convex, Tailwind, BaseUI, Resend, Polar, TypeScript, and Effect-TS. 
 
