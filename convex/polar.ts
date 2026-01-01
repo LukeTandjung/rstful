@@ -50,6 +50,6 @@ export const hasActiveSubscription = query({
       userId: userId,
     });
 
-    return subscription !== null && subscription.status === "active";
+    return subscription !== null && (subscription.status === "active" || subscription.status === "trialing");
   },
 });
