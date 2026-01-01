@@ -21,20 +21,20 @@ export function TokenProgress({
     <Progress.Root
       value={current}
       max={max}
-      className="grid grid-cols-2 gap-x-2.5 gap-y-3.5 h-10.5"
+      className="grid grid-cols-2 gap-x-2 gap-y-2 w-full"
     >
-      <Progress.Label className="[grid-area:1/1] flex items-start font-normal text-lg leading-7 text-text">
+      <Progress.Label className="[grid-area:1/1] flex items-center font-medium text-base leading-6 text-text">
         {label}
       </Progress.Label>
 
-      <Progress.Value className="[grid-area:1/2] flex items-start justify-end font-normal text-lg leading-7 text-text">
+      <Progress.Value className="[grid-area:1/2] flex items-center justify-end font-normal text-sm leading-5 text-text-alt">
         {() => `${current}/${max} (${period})`}
       </Progress.Value>
 
-      <Progress.Track className="[grid-area:2/1/auto/span_2] bg-background-alt flex rounded-md h-1">
+      <Progress.Track className="[grid-area:2/1/auto/span_2] bg-background flex rounded-full h-2">
         <Progress.Indicator
           style={{ '--hl-bg': hl.bg, width: `${percentage}%` } as React.CSSProperties}
-          className="bg-(--hl-bg) h-1 rounded-md"
+          className="bg-(--hl-bg) h-2 rounded-full"
         />
       </Progress.Track>
     </Progress.Root>
