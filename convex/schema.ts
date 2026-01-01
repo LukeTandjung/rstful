@@ -20,11 +20,11 @@ export default defineSchema({
 
   settings: defineTable({
     user_id: v.id("users"),
-    auto_refresh_feed: v.boolean(),
-    read_on_scroll: v.boolean(),
-    show_unread_content: v.boolean(),
-    open_new_tab: v.boolean(),
-    show_full_article: v.boolean(),
+    // Token usage (resets each billing cycle)
+    messages_used: v.number(),
+    deep_search_used: v.number(),
+    // Billing cycle tracking
+    subscription_period_start: v.number(),
   }).index("by_user_id", ["user_id"]),
 
   rss_feed: defineTable({

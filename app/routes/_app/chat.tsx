@@ -101,6 +101,8 @@ export default function Chat() {
   const createConversation = useMutation(api.chat.create_conversation);
   const deleteConversation = useMutation(api.chat.delete_conversation);
   const sendMessageMutation = useMutation(api.chat.send_message);
+  const deductMessageToken = useMutation(api.tokens.deductMessageToken);
+  const deductDeepSearchToken = useMutation(api.tokens.deductDeepSearchToken);
 
   // Single source of truth: Convex database
   const messages = useQuery(
@@ -153,6 +155,8 @@ export default function Chat() {
     const userInput = input;
     setInput("");
     setStreamingContent("");
+
+    let success = false;
 
     try {
       // Create conversation if needed
@@ -260,6 +264,9 @@ export default function Chat() {
           }
         }
       }
+
+      // Stream completed successfully - mark for token deduction
+      success = true;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         console.log("Request aborted");
@@ -272,6 +279,19 @@ export default function Chat() {
       setStreamingContent("");
       clearSearchState();
       abortControllerRef.current = null;
+
+      // Deduct token only on successful completion
+      if (success) {
+        try {
+          if (effectiveMode === "deep_search") {
+            await deductDeepSearchToken();
+          } else {
+            await deductMessageToken();
+          }
+        } catch (error) {
+          console.error("Failed to deduct token:", error);
+        }
+      }
     }
   };
 
