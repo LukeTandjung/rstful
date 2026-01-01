@@ -2,8 +2,12 @@
 
 <img src="./public/rstful.svg" align="left" width="200" alt="Sakhal logo of a deer and a dead tree" style="margin-right: 20px; margin-bottom: 10px;">
 
-rstful is a modern agentic RSS reader built with React Router, Convex, Tailwind, BaseUI, Resend, Polar, TypeScript, and Effect-TS. Chat with an agent
-that has full context of your saved articles and first 50 articles in your feed, and deep search for content creators you can relate to.
+rstful is a modern agentic RSS reader built with React Router, Convex, Tailwind, BaseUI, Resend, Polar, TypeScript, and Effect-TS. 
+
+
+Chat with an agent that has full context of your saved articles and first 50 articles in your feed, and deep search for content creators you can relate to.
+
+Planned features include a recommendation algorithm, automatic RSS feed conversions, and more!
 
 <br clear="left">
 ## Getting Started
