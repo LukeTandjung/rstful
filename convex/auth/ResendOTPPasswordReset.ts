@@ -11,7 +11,7 @@ const sendPasswordResetEmail = (email: string, token: string) =>
   Effect.tryPromise({
     try: async () => {
       const resend = new ResendAPI(process.env.AUTH_RESEND_KEY!);
-      const resetUrl = `${process.env.DOMAIN_URL}/reset-password`;
+      const resetUrl = `${process.env.SITE_URL}/reset-password`;
       const result = await resend.emails.send({
         from: "RSS Reader <noreply@rstful.com>",
         to: [email],
