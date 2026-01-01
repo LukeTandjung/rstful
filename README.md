@@ -96,7 +96,6 @@ Set the following environment variables in the [Convex dashboard](https://dashbo
 | `JWT_PRIVATE_KEY` | Generated private key for auth |
 | `JWKS` | Generated JWKS for auth |
 | `AUTH_RESEND_KEY` | Resend API key |
-| `DEDALUS_API_KEY` | Dedalus Labs production API key |
 | `POLAR_ORGANIZATION_TOKEN` | Polar production org token |
 | `POLAR_WEBHOOK_SECRET` | Polar production webhook secret |
 | `POLAR_PRODUCT_ID` | Polar production product ID |
@@ -119,9 +118,10 @@ This is a one-time step. Products stay in sync via webhooks afterward.
 3. Generate a deploy key in the [Convex dashboard](https://dashboard.convex.dev) under project settings → "Generate Production Deploy Key"
 4. Set the following environment variables in Vercel:
 
-| Variable | Value | Environment |
-|----------|-------|-------------|
-| `CONVEX_DEPLOY_KEY` | Your generated deploy key | Production |
+| Variable | Description |
+|----------|-------------|
+| `CONVEX_DEPLOY_KEY` | Your generated deploy key |
+| `DEDALUS_API_KEY` | Dedalus Labs production API key |
 
 5. Override the build command in Vercel project settings:
 
