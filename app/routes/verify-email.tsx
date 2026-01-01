@@ -2,12 +2,14 @@ import type { Route } from "./+types/verify-email";
 import { Form } from "@base-ui-components/react/form";
 import { Button } from "@base-ui-components/react/button";
 import { FormField } from "components";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import * as React from "react";
 import { Effect } from "effect";
 import { AuthService, Email } from "services/auth";
 import { appRuntime } from "services/runtime";
 import { useHighlighter } from "services/highlighter";
+import { useAction, useQuery } from "convex/react";
+import { api } from "convex/_generated/api";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,9 +19,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function VerifyEmail() {
-  const navigate = useNavigate();
   const [error, setError] = React.useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
   const hlButton = useHighlighter();
+  const configuredProducts = useQuery(api.polar.getConfiguredProducts);
+  const generateCheckoutLink = useAction(api.polar.generateCheckoutLink);
+  const productId = configuredProducts?.monthlySubscription?.id;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,28 +37,47 @@ export default function VerifyEmail() {
       return;
     }
 
-    const program = Effect.gen(function* () {
+    const verifyProgram = Effect.gen(function* () {
       const authService = yield* AuthService;
       yield* authService.verify_email(email, code);
-      navigate("/");
     }).pipe(
       Effect.catchTags({
-        ValidationError: (error) =>
-          Effect.sync(() => {
-            setError("Invalid email format.");
-            console.error(error);
-          }),
-        AuthenticationError: (error) =>
-          Effect.sync(() => {
-            setError(
-              "Email verification failed. Please check your email and code.",
-            );
-            console.error(error);
-          }),
+        ValidationError: () =>
+          Effect.fail("Invalid email format." as const),
+        AuthenticationError: () =>
+          Effect.fail("Email verification failed. Please check your email and code." as const),
       }),
     );
 
-    appRuntime.runPromise(program);
+    appRuntime.runPromise(verifyProgram).then(
+      async () => {
+        if (!productId) {
+          setError("Product configuration not loaded. Please try again.");
+          return;
+        }
+        setIsRedirecting(true);
+        try {
+          const result = await generateCheckoutLink({
+            productIds: [productId],
+            origin: window.location.origin,
+            successUrl: window.location.origin,
+          });
+          if (result?.url) {
+            window.location.href = result.url;
+          } else {
+            setError("Failed to start trial. Please try again.");
+            setIsRedirecting(false);
+          }
+        } catch {
+          setError("Failed to start trial. Please try again.");
+          setIsRedirecting(false);
+        }
+      },
+      (errorMessage) => {
+        setError(errorMessage);
+        setIsRedirecting(false);
+      },
+    );
   };
 
   return (
@@ -100,15 +124,16 @@ export default function VerifyEmail() {
 
             <Button
               type="submit"
+              disabled={isRedirecting}
               style={
                 {
                   "--hl-bg": hlButton.bg,
                   "--hl-text": hlButton.text,
                 } as React.CSSProperties
               }
-              className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2"
+              className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2 disabled:opacity-50"
             >
-              Verify Email
+              {isRedirecting ? "Redirecting to checkout..." : "Verify Email"}
             </Button>
 
             <div className="text-center">
