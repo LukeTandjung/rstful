@@ -116,16 +116,26 @@ This is a one-time step. Products stay in sync via webhooks afterward.
 
 1. Push your code to GitHub
 2. Import the repository in [Vercel](https://vercel.com)
-3. Set the following environment variables in Vercel:
+3. Generate a deploy key in the [Convex dashboard](https://dashboard.convex.dev) under project settings → "Generate Production Deploy Key"
+4. Set the following environment variables in Vercel:
 
-| Variable | Value |
-|----------|-------|
-| `CONVEX_DEPLOYMENT` | Your production Convex deployment name |
-| `VITE_CONVEX_URL` | Your production Convex URL (e.g., `https://<deployment>.convex.cloud`) |
+| Variable | Value | Environment |
+|----------|-------|-------------|
+| `CONVEX_DEPLOY_KEY` | Your generated deploy key | Production |
+
+5. Override the build command in Vercel project settings:
+
+```bash
+bunx convex deploy --cmd 'bun run build'
+```
+
+This ensures Convex functions deploy before your frontend builds, and automatically sets `VITE_CONVEX_URL`.
 
 ### 4. Deploy
 
-You can also use the [Convex Vercel integration](https://docs.convex.dev/production/hosting/vercel) to automatically sync deployments.
+Push to your repository and Vercel will automatically deploy both your Convex backend and frontend.
+
+See [Convex Vercel docs](https://docs.convex.dev/production/hosting/vercel) for more details.
 
 ## Building for Production
 
