@@ -10,9 +10,8 @@ Chat with an agent that has full context of your saved articles and first 50 art
 Planned features include a recommendation algorithm, automatic RSS feed conversions, and more!
 
 <br clear="left">
-## Getting Started
 
-### Prerequisites
+## Prerequisites
 
 - [Bun](https://bun.sh)
 - A [Convex](https://convex.dev) account
@@ -20,7 +19,7 @@ Planned features include a recommendation algorithm, automatic RSS feed conversi
 - A [Polar](https://polar.sh) account (for payments)
 - A [Dedalus Labs](https://dedalus.dev) account
 
-### Installation
+## Installation
 
 ```bash
 bun install
@@ -55,7 +54,7 @@ POLAR_PRODUCT_ID=<your-polar-product-id>
 POLAR_SERVER=sandbox  # use "production" for live
 ```
 
-#### Generating JWT Keys
+### Generating JWT Keys
 
 ```bash
 bun utils/generateKeys.mjs
@@ -63,7 +62,7 @@ bun utils/generateKeys.mjs
 
 Copy the output values into your environment variables.
 
-### Local Development
+## Local Development
 
 1. Start the Convex development server:
 
@@ -124,7 +123,7 @@ This is a one-time step. Products stay in sync via webhooks afterward.
 | `CONVEX_DEPLOYMENT` | Your production Convex deployment name |
 | `VITE_CONVEX_URL` | Your production Convex URL (e.g., `https://<deployment>.convex.cloud`) |
 
-4. Deploy
+### 4. Deploy
 
 You can also use the [Convex Vercel integration](https://docs.convex.dev/production/hosting/vercel) to automatically sync deployments.
 
