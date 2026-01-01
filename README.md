@@ -44,6 +44,16 @@ npm run build
 
 ## Deployment
 
+### Convex Setup (Required)
+
+After deploying Convex to production, you must sync Polar products:
+
+```bash
+bunx convex run polar:syncProducts --prod
+```
+
+This is a one-time step that populates the products table. After this, products will stay in sync automatically via webhooks.
+
 ### Docker Deployment
 
 To build and run using Docker:
