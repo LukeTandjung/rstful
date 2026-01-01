@@ -9,6 +9,7 @@ import { AuthService, Email } from "services/auth";
 import { appRuntime } from "services/runtime";
 import { useHighlighter } from "services/highlighter";
 import { useAction, useQuery } from "convex/react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import { api } from "convex/_generated/api";
 
 export function meta({}: Route.MetaArgs) {
@@ -20,11 +21,44 @@ export function meta({}: Route.MetaArgs) {
 
 export default function VerifyEmail() {
   const [error, setError] = React.useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [verificationComplete, setVerificationComplete] = React.useState(false);
   const [isRedirecting, setIsRedirecting] = React.useState(false);
   const hlButton = useHighlighter();
+  const authToken = useAuthToken();
   const configuredProducts = useQuery(api.polar.getConfiguredProducts);
   const generateCheckoutLink = useAction(api.polar.generateCheckoutLink);
   const productId = configuredProducts?.monthlySubscription?.id;
+
+  React.useEffect(() => {
+    if (!verificationComplete || !authToken || !productId) {
+      return;
+    }
+
+    const redirectToCheckout = async () => {
+      setIsRedirecting(true);
+      try {
+        const result = await generateCheckoutLink({
+          productIds: [productId],
+          origin: window.location.origin,
+          successUrl: window.location.origin,
+        });
+        if (result?.url) {
+          window.location.href = result.url;
+        } else {
+          setError("Failed to start trial. Please try again.");
+          setIsRedirecting(false);
+          setVerificationComplete(false);
+        }
+      } catch {
+        setError("Failed to start trial. Please try again.");
+        setIsRedirecting(false);
+        setVerificationComplete(false);
+      }
+    };
+
+    redirectToCheckout();
+  }, [verificationComplete, authToken, productId, generateCheckoutLink]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -36,6 +70,9 @@ export default function VerifyEmail() {
       setError("App not initialized");
       return;
     }
+
+    setIsVerifying(true);
+    setError(null);
 
     const verifyProgram = Effect.gen(function* () {
       const authService = yield* AuthService;
@@ -50,32 +87,13 @@ export default function VerifyEmail() {
     );
 
     appRuntime.runPromise(verifyProgram).then(
-      async () => {
-        if (!productId) {
-          setError("Product configuration not loaded. Please try again.");
-          return;
-        }
-        setIsRedirecting(true);
-        try {
-          const result = await generateCheckoutLink({
-            productIds: [productId],
-            origin: window.location.origin,
-            successUrl: window.location.origin,
-          });
-          if (result?.url) {
-            window.location.href = result.url;
-          } else {
-            setError("Failed to start trial. Please try again.");
-            setIsRedirecting(false);
-          }
-        } catch {
-          setError("Failed to start trial. Please try again.");
-          setIsRedirecting(false);
-        }
+      () => {
+        setIsVerifying(false);
+        setVerificationComplete(true);
       },
       (errorMessage) => {
         setError(errorMessage);
-        setIsRedirecting(false);
+        setIsVerifying(false);
       },
     );
   };
@@ -124,7 +142,7 @@ export default function VerifyEmail() {
 
             <Button
               type="submit"
-              disabled={isRedirecting}
+              disabled={!configuredProducts || isVerifying || verificationComplete || isRedirecting}
               style={
                 {
                   "--hl-bg": hlButton.bg,
@@ -133,7 +151,13 @@ export default function VerifyEmail() {
               }
               className="w-full bg-(--hl-bg) text-(--hl-text) px-4 py-3 rounded-lg font-medium text-base leading-6 transition-colors mt-2 disabled:opacity-50"
             >
-              {isRedirecting ? "Redirecting to checkout..." : "Verify Email"}
+              {!configuredProducts
+                ? "Loading..."
+                : isVerifying
+                  ? "Verifying..."
+                  : verificationComplete || isRedirecting
+                    ? "Redirecting to checkout..."
+                    : "Verify Email"}
             </Button>
 
             <div className="text-center">
