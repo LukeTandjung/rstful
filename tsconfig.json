@@ -28,7 +28,7 @@
     "exactOptionalPropertyTypes": true,
     "plugins": [
       {
-        "name": "@effect/languag-service"
+        "name": "@effect/language-service"
       }
     ]
   }
