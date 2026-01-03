@@ -15,6 +15,7 @@ import type * as cached_content from "../cached_content.js";
 import type * as chat from "../chat.js";
 import type * as chemistry_embedding from "../chemistry_embedding.js";
 import type * as http from "../http.js";
+import type * as migrations from "../migrations.js";
 import type * as polar from "../polar.js";
 import type * as rss_feed from "../rss_feed.js";
 import type * as rss_fetcher from "../rss_fetcher.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   chemistry_embedding: typeof chemistry_embedding;
   http: typeof http;
+  migrations: typeof migrations;
   polar: typeof polar;
   rss_feed: typeof rss_feed;
   rss_fetcher: typeof rss_fetcher;
