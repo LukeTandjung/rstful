@@ -5,17 +5,78 @@ import { v } from "convex/values";
 const FEED_BATCH_SIZE = 10;
 
 /**
- * Migration: Backfill unread_count on rss_feed and total_unread_count on users.
- *
- * Run this to start the batched migration:
- *   bunx convex run migrations:backfill_start
+ * Step 1: Reset all counts to 0 before re-running migration.
+ * Run: bunx convex run --prod migrations:reset_counts
+ */
+export const reset_counts = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    console.log("Resetting all counts to 0...");
+    await ctx.runMutation(internal.migrations.reset_feeds_batch, {
+      cursor: null,
+    });
+  },
+});
+
+export const reset_feeds_batch = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const results = await ctx.db
+      .query("rss_feed")
+      .paginate({ cursor: args.cursor ?? undefined, numItems: 100 });
+
+    for (const feed of results.page) {
+      await ctx.db.patch(feed._id, { unread_count: BigInt(0) });
+    }
+
+    console.log(`Reset ${results.page.length} feeds...`);
+
+    if (!results.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.reset_feeds_batch, {
+        cursor: results.continueCursor,
+      });
+    } else {
+      console.log("Feeds reset complete. Resetting users...");
+      await ctx.scheduler.runAfter(0, internal.migrations.reset_users_batch, {
+        cursor: null,
+      });
+    }
+  },
+});
+
+export const reset_users_batch = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    const results = await ctx.db
+      .query("users")
+      .paginate({ cursor: args.cursor ?? undefined, numItems: 100 });
+
+    for (const user of results.page) {
+      await ctx.db.patch(user._id, { total_unread_count: BigInt(0) });
+    }
+
+    console.log(`Reset ${results.page.length} users...`);
+
+    if (!results.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.reset_users_batch, {
+        cursor: results.continueCursor,
+      });
+    } else {
+      console.log("All counts reset to 0. Now run: bunx convex run --prod migrations:backfill_start");
+    }
+  },
+});
+
+/**
+ * Step 2: Backfill unread_count on rss_feed and total_unread_count on users.
+ * Run: bunx convex run --prod migrations:backfill_start
  */
 export const backfill_start = internalAction({
   args: {},
   handler: async (ctx) => {
     console.log("Starting migration...");
     await ctx.runMutation(internal.migrations.backfill_feed_batch, {
-      lastFeedId: null,
+      cursor: null,
       userTotals: {},
       feedsProcessed: 0,
     });
@@ -24,11 +85,11 @@ export const backfill_start = internalAction({
 
 /**
  * Process a batch of feeds, counting unread articles for each.
- * Uses scheduler to continue with next batch to avoid timeouts.
+ * Uses Convex cursor-based pagination for reliability.
  */
 export const backfill_feed_batch = internalMutation({
   args: {
-    lastFeedId: v.union(v.id("rss_feed"), v.null()),
+    cursor: v.union(v.string(), v.null()),
     userTotals: v.any(), // Record<string, number>
     feedsProcessed: v.number(),
   },
@@ -36,28 +97,12 @@ export const backfill_feed_batch = internalMutation({
     const userTotals: Record<string, number> = args.userTotals ?? {};
     let totalFeedsProcessed = args.feedsProcessed;
 
-    // Query feeds after the last processed ID
-    let query = ctx.db.query("rss_feed").withIndex("by_last_fetched");
+    // Use proper cursor-based pagination
+    const results = await ctx.db
+      .query("rss_feed")
+      .paginate({ cursor: args.cursor ?? undefined, numItems: FEED_BATCH_SIZE });
 
-    // Take a batch
-    const allFeeds = await query.take(FEED_BATCH_SIZE + (args.lastFeedId ? 100 : 0));
-
-    // If we have a lastFeedId, find feeds after it
-    let feedsBatch: typeof allFeeds;
-    if (args.lastFeedId) {
-      const lastIndex = allFeeds.findIndex(f => f._id === args.lastFeedId);
-      if (lastIndex === -1) {
-        // Last feed not found in this batch, need to scan more
-        // For now, just take from the beginning of what we got
-        feedsBatch = allFeeds.slice(0, FEED_BATCH_SIZE);
-      } else {
-        feedsBatch = allFeeds.slice(lastIndex + 1, lastIndex + 1 + FEED_BATCH_SIZE);
-      }
-    } else {
-      feedsBatch = allFeeds.slice(0, FEED_BATCH_SIZE);
-    }
-
-    if (feedsBatch.length === 0) {
+    if (results.page.length === 0) {
       // No more feeds - update users and finish
       console.log("All feeds processed. Updating users...");
       await ctx.scheduler.runAfter(0, internal.migrations.backfill_update_users, {
@@ -68,19 +113,26 @@ export const backfill_feed_batch = internalMutation({
     }
 
     // Process each feed in this batch
-    for (const feed of feedsBatch) {
-      // Count unread articles for this feed
-      // Use take() with a reasonable limit to avoid memory issues
+    for (const feed of results.page) {
+      // Count unread articles for this feed using pagination
       let unreadCount = 0;
-      const articles = await ctx.db
-        .query("cached_content")
-        .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", feed._id))
-        .take(1000); // Most feeds won't have more than 1000 articles
+      let articleCursor: string | undefined = undefined;
+      let hasMore = true;
 
-      for (const article of articles) {
-        if (!article.is_read) {
-          unreadCount++;
+      while (hasMore) {
+        const articleResults = await ctx.db
+          .query("cached_content")
+          .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", feed._id))
+          .paginate({ cursor: articleCursor, numItems: 500 });
+
+        for (const article of articleResults.page) {
+          if (!article.is_read) {
+            unreadCount++;
+          }
         }
+
+        hasMore = !articleResults.isDone;
+        articleCursor = articleResults.continueCursor;
       }
 
       // Update feed's unread_count
@@ -93,15 +145,23 @@ export const backfill_feed_batch = internalMutation({
       totalFeedsProcessed++;
     }
 
-    const lastFeed = feedsBatch[feedsBatch.length - 1];
-    console.log(`Processed ${feedsBatch.length} feeds (total: ${totalFeedsProcessed}). Scheduling next batch...`);
+    console.log(`Processed ${results.page.length} feeds (total: ${totalFeedsProcessed}). Scheduling next batch...`);
 
-    // Schedule next batch
-    await ctx.scheduler.runAfter(0, internal.migrations.backfill_feed_batch, {
-      lastFeedId: lastFeed._id,
-      userTotals,
-      feedsProcessed: totalFeedsProcessed,
-    });
+    if (!results.isDone) {
+      // Schedule next batch with the continuation cursor
+      await ctx.scheduler.runAfter(0, internal.migrations.backfill_feed_batch, {
+        cursor: results.continueCursor,
+        userTotals,
+        feedsProcessed: totalFeedsProcessed,
+      });
+    } else {
+      // All feeds done, update users
+      console.log("All feeds processed. Updating users...");
+      await ctx.scheduler.runAfter(0, internal.migrations.backfill_update_users, {
+        userTotals,
+        feedsProcessed: totalFeedsProcessed,
+      });
+    }
 
     return { status: "continuing", feedsProcessed: totalFeedsProcessed };
   },
