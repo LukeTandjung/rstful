@@ -23,7 +23,7 @@ export const reset_feeds_batch = internalMutation({
   handler: async (ctx, args) => {
     const results = await ctx.db
       .query("rss_feed")
-      .paginate({ cursor: args.cursor ?? undefined, numItems: 100 });
+      .paginate({ cursor: args.cursor, numItems: 100 });
 
     for (const feed of results.page) {
       await ctx.db.patch(feed._id, { unread_count: BigInt(0) });
@@ -49,7 +49,7 @@ export const reset_users_batch = internalMutation({
   handler: async (ctx, args) => {
     const results = await ctx.db
       .query("users")
-      .paginate({ cursor: args.cursor ?? undefined, numItems: 100 });
+      .paginate({ cursor: args.cursor, numItems: 100 });
 
     for (const user of results.page) {
       await ctx.db.patch(user._id, { total_unread_count: BigInt(0) });
@@ -100,7 +100,7 @@ export const backfill_feed_batch = internalMutation({
     // Use proper cursor-based pagination
     const results = await ctx.db
       .query("rss_feed")
-      .paginate({ cursor: args.cursor ?? undefined, numItems: FEED_BATCH_SIZE });
+      .paginate({ cursor: args.cursor, numItems: FEED_BATCH_SIZE });
 
     if (results.page.length === 0) {
       // No more feeds - update users and finish
@@ -116,7 +116,7 @@ export const backfill_feed_batch = internalMutation({
     for (const feed of results.page) {
       // Count unread articles for this feed using pagination
       let unreadCount = 0;
-      let articleCursor: string | undefined = undefined;
+      let articleCursor: string | null = null;
       let hasMore = true;
 
       while (hasMore) {
