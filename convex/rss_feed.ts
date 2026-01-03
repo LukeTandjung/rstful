@@ -41,6 +41,7 @@ export const post_rss_feed = mutation({
       status: args.status,
       last_fetched: args.last_fetched,
       failure_count: args.failure_count ?? 0,
+      unread_count: BigInt(0),
     });
     return new_rss_feed_id;
   },
@@ -75,6 +76,34 @@ export const delete_rss_feed = mutation({
   handler: async (ctx, args) => {
     const { rss_feed_id } = args;
 
+    // Get the feed to access user_id and unread_count
+    const feed = await ctx.db.get(rss_feed_id);
+    if (!feed) {
+      throw new Error("Feed not found");
+    }
+
+    // Delete all cached articles for this feed
+    const cachedArticles = await ctx.db
+      .query("cached_content")
+      .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", rss_feed_id))
+      .collect();
+
+    for (const article of cachedArticles) {
+      await ctx.db.delete(article._id);
+    }
+
+    // Decrement user's total_unread_count by the feed's unread_count
+    const feedUnreadCount = feed.unread_count ?? BigInt(0);
+    if (feedUnreadCount > 0) {
+      const user = await ctx.db.get(feed.user_id);
+      if (user) {
+        const currentCount = user.total_unread_count ?? BigInt(0);
+        const newCount = BigInt(Math.max(0, Number(currentCount) - Number(feedUnreadCount)));
+        await ctx.db.patch(feed.user_id, { total_unread_count: newCount });
+      }
+    }
+
+    // Delete the feed
     await ctx.db.delete(rss_feed_id);
 
     return rss_feed_id;
@@ -156,6 +185,7 @@ export const import_feeds = mutation({
           status: "active",
           last_fetched: BigInt(0),
           failure_count: 0,
+          unread_count: BigInt(0),
         });
         existingUrls.add(feed.url.toLowerCase());
         imported++;
