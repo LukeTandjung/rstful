@@ -12,7 +12,8 @@ export interface RssFeedDoc {
   website_url: string;
   status: string;
   last_fetched: bigint;
-  failure_count: number;
+  failure_count?: number;
+  unread_count?: bigint;
 }
 
 export interface FetchFeedsResult {

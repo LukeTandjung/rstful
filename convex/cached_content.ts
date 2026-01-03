@@ -2,18 +2,6 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
-export const get_cached_articles = query({
-  args: { user_id: v.id("users") },
-  handler: async (ctx, args) => {
-    const articles = await ctx.db
-      .query("cached_content")
-      .filter((q) => q.eq(q.field("user_id"), args.user_id))
-      .order("desc")
-      .collect();
-    return articles;
-  },
-});
-
 export const get_cached_articles_paginated = query({
   args: {
     user_id: v.id("users"),
@@ -25,42 +13,6 @@ export const get_cached_articles_paginated = query({
       .withIndex("by_user_id_pub_date", (q) => q.eq("user_id", args.user_id))
       .order("desc")
       .paginate(args.paginationOpts);
-  },
-});
-
-export const get_cached_articles_by_feed = query({
-  args: { rss_feed_id: v.id("rss_feed") },
-  handler: async (ctx, args) => {
-    const articles = await ctx.db
-      .query("cached_content")
-      .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
-      .order("desc")
-      .collect();
-    return articles;
-  },
-});
-
-export const get_unread_count_by_feed = query({
-  args: { rss_feed_id: v.id("rss_feed") },
-  handler: async (ctx, args) => {
-    const articles = await ctx.db
-      .query("cached_content")
-      .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
-      .filter((q) => q.eq(q.field("is_read"), false))
-      .collect();
-    return articles.length;
-  },
-});
-
-export const get_total_unread_count = query({
-  args: { user_id: v.id("users") },
-  handler: async (ctx, args) => {
-    const articles = await ctx.db
-      .query("cached_content")
-      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
-      .filter((q) => q.eq(q.field("is_read"), false))
-      .collect();
-    return articles.length;
   },
 });
 
@@ -84,7 +36,27 @@ export const mark_as_read = mutation({
       return { success: true, alreadyRead: true };
     }
 
+    // Mark article as read
     await ctx.db.patch(args.article_id, { is_read: true });
+
+    // Decrement feed unread_count
+    if (article.rss_feed_id) {
+      const feed = await ctx.db.get(article.rss_feed_id);
+      if (feed) {
+        const currentCount = feed.unread_count ?? BigInt(0);
+        const newCount = BigInt(Math.max(0, Number(currentCount) - 1));
+        await ctx.db.patch(article.rss_feed_id, { unread_count: newCount });
+      }
+    }
+
+    // Decrement user total_unread_count
+    const user = await ctx.db.get(args.user_id);
+    if (user) {
+      const currentCount = user.total_unread_count ?? BigInt(0);
+      const newCount = BigInt(Math.max(0, Number(currentCount) - 1));
+      await ctx.db.patch(args.user_id, { total_unread_count: newCount });
+    }
+
     return { success: true, alreadyRead: false };
   },
 });

@@ -14,6 +14,8 @@ export default defineSchema({
     phone: v.optional(v.string()),
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
+    // TODO: Remove v.optional after running migrations:backfill_unread_counts
+    total_unread_count: v.optional(v.int64()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),
@@ -36,7 +38,11 @@ export default defineSchema({
     status: v.string(),
     last_fetched: v.int64(),
     failure_count: v.optional(v.number()),
-  }).index("by_user_id", ["user_id"]),
+    // TODO: Remove v.optional after running migrations:backfill_unread_counts
+    unread_count: v.optional(v.int64()),
+  })
+    .index("by_user_id", ["user_id"])
+    .index("by_last_fetched", ["last_fetched"]),
 
   saved_content: defineTable({
     user_id: v.id("users"),

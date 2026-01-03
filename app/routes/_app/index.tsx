@@ -45,11 +45,8 @@ export default function Home() {
     { initialNumItems: 20 }
   );
 
-  // Get total unread count from server
-  const unreadCount = useQuery(
-    api.cached_content.get_total_unread_count,
-    user_id ? { user_id } : "skip"
-  );
+  // Get total unread count from user doc (denormalized counter)
+  const unreadCount = viewer?.total_unread_count ? Number(viewer.total_unread_count) : 0;
 
   // Get saved articles for the user
   const savedArticles = useQuery(

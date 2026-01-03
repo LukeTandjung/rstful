@@ -1,9 +1,9 @@
 import type { Route } from "./+types/settings";
 import { Cog6ToothIcon } from "@heroicons/react/16/solid";
 import { Button } from "@base-ui-components/react/button";
-import { SectionCard, TokenProgress } from "components";
+import { SectionCard, TokenProgress, ImportProgressDialog } from "components";
 import { useNavigate } from "react-router";
-import * as React from "react";
+import { useState, useRef } from "react";
 import { Effect } from "effect";
 import { AuthService } from "services/auth";
 import { appRuntime } from "services/runtime";
@@ -11,6 +11,9 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import { downloadOpml, parseOpml, readOpmlFile } from "services/opml";
 import { useHighlighter } from "services/highlighter";
+
+// Batch size for OPML import
+const IMPORT_BATCH_SIZE = 50;
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -24,7 +27,16 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Import progress state
+  const [importProgress, setImportProgress] = useState({
+    open: false,
+    current: 0,
+    total: 0,
+    imported: 0,
+    skipped: 0,
+  });
 
   const hlManageSubscription = useHighlighter();
   const hlExport = useHighlighter();
@@ -79,15 +91,44 @@ export default function Settings() {
         return;
       }
 
-      const result = await importFeeds({
-        user_id: viewer._id,
-        feeds: parsedFeeds,
+      // Calculate number of batches
+      const totalBatches = Math.ceil(parsedFeeds.length / IMPORT_BATCH_SIZE);
+
+      // Open progress dialog
+      setImportProgress({
+        open: true,
+        current: 0,
+        total: totalBatches,
+        imported: 0,
+        skipped: 0,
       });
 
-      alert(
-        `Imported ${result.imported} feeds, skipped ${result.skipped} duplicates`,
-      );
+      let totalImported = 0;
+      let totalSkipped = 0;
+
+      // Process feeds in batches
+      for (let i = 0; i < parsedFeeds.length; i += IMPORT_BATCH_SIZE) {
+        const batch = parsedFeeds.slice(i, i + IMPORT_BATCH_SIZE);
+        const batchNumber = Math.floor(i / IMPORT_BATCH_SIZE) + 1;
+
+        const result = await importFeeds({
+          user_id: viewer._id,
+          feeds: batch,
+        });
+
+        totalImported += result.imported;
+        totalSkipped += result.skipped;
+
+        // Update progress
+        setImportProgress((prev) => ({
+          ...prev,
+          current: batchNumber,
+          imported: totalImported,
+          skipped: totalSkipped,
+        }));
+      }
     } catch (err) {
+      setImportProgress((prev) => ({ ...prev, open: false }));
       alert(`Failed to import: ${err}`);
     }
 
@@ -95,6 +136,16 @@ export default function Settings() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleImportComplete = () => {
+    setImportProgress({
+      open: false,
+      current: 0,
+      total: 0,
+      imported: 0,
+      skipped: 0,
+    });
   };
 
   const handleLogout = () => {
@@ -299,6 +350,11 @@ export default function Settings() {
           </div>
         </div>
       </SectionCard>
+
+      <ImportProgressDialog
+        {...importProgress}
+        onComplete={handleImportComplete}
+      />
     </div>
   );
 }

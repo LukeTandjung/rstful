@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { Effect } from "effect";
 import { api } from "convex/_generated/api";
-import type { Id, Doc } from "convex/_generated/dataModel";
+import type { Id } from "convex/_generated/dataModel";
 import { FeedPopover } from "./FeedPopover";
 import { useHighlighter } from "services/highlighter";
 import { RssFeedService, make_rss_feed_service_live } from "services/rss_feed";
@@ -22,13 +22,9 @@ export function MenuBar({ userName, userId }: MenuBarProps) {
   const hlSettings = useHighlighter();
   const hlContact = useHighlighter();
 
-  // Query feeds and articles
+  // Query feeds (unread counts are now stored on feed docs)
   const feeds = useQuery(
     api.rss_feed.get_rss_feed,
-    userId ? { user_id: userId } : "skip"
-  );
-  const cachedArticles = useQuery(
-    api.cached_content.get_cached_articles,
     userId ? { user_id: userId } : "skip"
   );
 
@@ -50,17 +46,18 @@ export function MenuBar({ userName, userId }: MenuBarProps) {
 
   const feedsList = feeds ?? [];
 
-  // Calculate unread counts
-  const unreadCountByFeed = (cachedArticles ?? []).reduce(
-    (acc: Record<string, number>, article: Doc<"cached_content">) => {
-      if (!article.is_read && article.rss_feed_id) {
-        acc[article.rss_feed_id] = (acc[article.rss_feed_id] || 0) + 1;
-      }
+  // Calculate unread counts from feed docs (denormalized counters)
+  const unreadCountByFeed = feedsList.reduce(
+    (acc: Record<string, number>, feed) => {
+      acc[feed._id] = Number(feed.unread_count ?? 0);
       return acc;
     },
     {}
   );
-  const totalUnread = (cachedArticles ?? []).filter((a) => !a.is_read).length;
+  const totalUnread = feedsList.reduce(
+    (sum, feed) => sum + Number(feed.unread_count ?? 0),
+    0
+  );
 
   const handleRefreshFeed = (feedId: Id<"rss_feed">) => {
     const program = RssFeedService.pipe(

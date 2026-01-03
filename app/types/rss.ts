@@ -10,6 +10,8 @@ export interface RssFeed {
   category: string;
   last_fetched: bigint;
   status: string;
+  failure_count?: number;
+  unread_count?: bigint;
 }
 
 export interface RssArticle {

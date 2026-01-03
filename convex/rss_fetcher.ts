@@ -4,6 +4,18 @@ import type { Id, Doc } from "./_generated/dataModel";
 import { XMLParser } from "fast-xml-parser";
 import { api, internal } from "./_generated/api";
 
+// Batch size for feed fetching to avoid memory issues
+const FEED_BATCH_SIZE = 50;
+
+// Helper to chunk an array into batches
+function chunkArray<T>(array: Array<T>, size: number): Array<Array<T>> {
+  const chunks: Array<Array<T>> = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
 // Action to fetch RSS feeds (can make HTTP requests)
 export const fetch_user_feeds = action({
   args: { user_id: v.id("users") },
@@ -17,15 +29,25 @@ export const fetch_user_feeds = action({
       return { success: true, total: 0, successful: 0, failed: 0, message: "No feeds to fetch" };
     }
 
-    const results = await Promise.allSettled(
-      feeds.map((feed: Doc<"rss_feed">) => fetch_single_feed(ctx, feed))
-    );
+    // Process feeds in batches to avoid memory issues
+    const batches = chunkArray(feeds, FEED_BATCH_SIZE);
+    let successful = 0;
+    let failed = 0;
+
+    for (const batch of batches) {
+      const results = await Promise.allSettled(
+        batch.map((feed: Doc<"rss_feed">) => fetch_single_feed(ctx, feed))
+      );
+
+      successful += results.filter((r: PromiseSettledResult<unknown>) => r.status === "fulfilled").length;
+      failed += results.filter((r: PromiseSettledResult<unknown>) => r.status === "rejected").length;
+    }
 
     return {
       success: true,
       total: feeds.length,
-      successful: results.filter((r: PromiseSettledResult<unknown>) => r.status === "fulfilled").length,
-      failed: results.filter((r: PromiseSettledResult<unknown>) => r.status === "rejected").length,
+      successful,
+      failed,
     };
   },
 });
@@ -113,6 +135,28 @@ async function fetch_single_feed(
   }
 }
 
+// Maximum content size in bytes (50KB)
+const MAX_CONTENT_SIZE = 50 * 1024;
+const TRUNCATION_MESSAGE = "<p>(truncated article, click on link to read the full article)</p>";
+
+// Truncate HTML content safely by trying to break at tag boundaries
+function truncateContent(content: string): string {
+  if (content.length <= MAX_CONTENT_SIZE) {
+    return content;
+  }
+
+  // Truncate to max size
+  let truncated = content.slice(0, MAX_CONTENT_SIZE);
+
+  // Try to find the last closing tag to avoid breaking mid-tag
+  const lastClosingTag = truncated.lastIndexOf(">");
+  if (lastClosingTag > MAX_CONTENT_SIZE * 0.8) {
+    truncated = truncated.slice(0, lastClosingTag + 1);
+  }
+
+  return truncated + TRUNCATION_MESSAGE;
+}
+
 // Internal mutation to store cached articles and clean up stale entries
 export const store_cached_articles = internalMutation({
   args: {
@@ -132,37 +176,64 @@ export const store_cached_articles = internalMutation({
   handler: async (ctx, args): Promise<number> => {
     const currentLinks = new Set(args.articles.map((a) => a.link));
 
-    // Get all existing cached articles for this feed
+    // Get all existing cached articles for this feed to find stale ones
     const existingArticles = await ctx.db
       .query("cached_content")
       .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
       .collect();
 
-    // Delete articles no longer in the feed
+    // Count unread articles being deleted (for counter decrement)
+    let deletedUnreadCount = 0;
     for (const existing of existingArticles) {
       if (!currentLinks.has(existing.link)) {
+        if (!existing.is_read) {
+          deletedUnreadCount++;
+        }
         await ctx.db.delete(existing._id);
       }
     }
 
-    // Insert new articles
-    let inserted_count = 0;
+    // Build set of existing links for dedup
     const existingLinks = new Set(existingArticles.map((a) => a.link));
 
+    // Insert new articles with truncated content
+    let inserted_count = 0;
     for (const article of args.articles) {
       if (!existingLinks.has(article.link)) {
+        const truncatedContent = truncateContent(article.content);
         await ctx.db.insert("cached_content", {
           user_id: args.user_id,
           rss_feed_id: args.rss_feed_id,
           link: article.link,
           title: article.title,
           ...(article.description && { description: article.description }),
-          content: article.content,
+          content: truncatedContent,
           ...(article.author && { author: article.author }),
           ...(article.pub_date && { pub_date: BigInt(article.pub_date) }),
           is_read: false,
         });
         inserted_count++;
+      }
+    }
+
+    // Update unread counts: net change = inserted - deleted_unread
+    const netChange = inserted_count - deletedUnreadCount;
+
+    if (netChange !== 0) {
+      // Update feed unread_count
+      const feed = await ctx.db.get(args.rss_feed_id);
+      if (feed) {
+        const currentFeedCount = feed.unread_count ?? BigInt(0);
+        const newFeedCount = BigInt(Math.max(0, Number(currentFeedCount) + netChange));
+        await ctx.db.patch(args.rss_feed_id, { unread_count: newFeedCount });
+      }
+
+      // Update user total_unread_count
+      const user = await ctx.db.get(args.user_id);
+      if (user) {
+        const currentUserCount = user.total_unread_count ?? BigInt(0);
+        const newUserCount = BigInt(Math.max(0, Number(currentUserCount) + netChange));
+        await ctx.db.patch(args.user_id, { total_unread_count: newUserCount });
       }
     }
 
