@@ -114,26 +114,13 @@ export const backfill_feed_batch = internalMutation({
 
     // Process each feed in this batch
     for (const feed of results.page) {
-      // Count unread articles for this feed using pagination
-      let unreadCount = 0;
-      let articleCursor: string | null = null;
-      let hasMore = true;
+      // Count unread articles for this feed
+      const articles = await ctx.db
+        .query("cached_content")
+        .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", feed._id))
+        .collect();
 
-      while (hasMore) {
-        const articleResults = await ctx.db
-          .query("cached_content")
-          .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", feed._id))
-          .paginate({ cursor: articleCursor, numItems: 500 });
-
-        for (const article of articleResults.page) {
-          if (!article.is_read) {
-            unreadCount++;
-          }
-        }
-
-        hasMore = !articleResults.isDone;
-        articleCursor = articleResults.continueCursor;
-      }
+      const unreadCount = articles.filter((a) => !a.is_read).length;
 
       // Update feed's unread_count
       await ctx.db.patch(feed._id, { unread_count: BigInt(unreadCount) });
