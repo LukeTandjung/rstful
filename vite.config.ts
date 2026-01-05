@@ -12,6 +12,7 @@ export default defineConfig({
   base: "/",
   server: {
     port: 3000,
+    allowedHosts: [".ngrok-free.app"],
   },
   plugins: [
     tailwindcss(),
