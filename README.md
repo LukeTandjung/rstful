@@ -122,6 +122,9 @@ This is a one-time step. Products stay in sync via webhooks afterward.
 |----------|-------------|
 | `CONVEX_DEPLOY_KEY` | Your generated deploy key |
 | `DEDALUS_API_KEY` | Dedalus Labs production API key |
+| `VITE_CONVEX_URL` | Your production Convex URL (e.g., `https://your-deployment.convex.cloud`) |
+
+> **Note:** While `convex deploy` automatically sets `VITE_CONVEX_URL` at build time for the frontend, server-side API routes need it available at runtime. Adding it explicitly to Vercel ensures both frontend and backend can access it.
 
 5. Override the build command in Vercel project settings:
 
