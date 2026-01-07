@@ -9,7 +9,7 @@ export { CustomSwitch } from "./CustomSwitch";
 export { EditFeedDialog } from "./EditFeedDialog";
 export { FeedCollapsibleItem } from "./FeedCollapsibleItem";
 export { FeedIconItem } from "./FeedIconItem";
-export { FeedPopover } from "./FeedPopover";
+export { FeedSidebar } from "./FeedPopover";
 export { FormField } from "./FormField";
 export { ImportProgressDialog } from "./ImportProgressDialog";
 export { MenuBar } from "./MenuBar";
