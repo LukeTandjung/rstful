@@ -1,6 +1,7 @@
 export { AddFeedDialog } from "./AddFeedDialog";
 export { ArticleListItem } from "./ArticleListItem";
 export { ArticleReader } from "./ArticleReader";
+export { ChatModeMenu } from "./ChatModeMenu";
 export { ChatModeToggle } from "./ChatModeToggle";
 export type { ChatMode } from "./ChatModeToggle";
 export { ConversationListItem } from "./ConversationListItem";

@@ -126,3 +126,16 @@ export const update_message = mutation({
     return args.message_id;
   },
 });
+
+export const update_conversation_name = mutation({
+  args: {
+    group_chat_id: v.id("group_chat"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.group_chat_id, {
+      name: args.name,
+    });
+    return args.group_chat_id;
+  },
+});

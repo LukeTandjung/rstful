@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   /* Fonts */
@@ -18,6 +19,8 @@
   --color-urgent: #CC6D00;
   --color-warning: #77713F;
   --color-error: #C84053;
+  --color-link: #7FB4CA;          /* springBlue - for links */
+  --color-link-hover: #7AA89F;    /* waveAqua2 - for link hover */
 
   /* Highlighter colors (Kanagawa palette) */
   --color-highlighter-yellow: #E6C384;   /* carpYellow */
