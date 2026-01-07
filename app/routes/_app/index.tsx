@@ -9,6 +9,7 @@ import {
   SectionCard,
   ArticleListItem,
   ArticleReader,
+  FeedSidebar,
 } from "components";
 
 export function meta({}: Route.MetaArgs) {
@@ -151,13 +152,15 @@ export default function Home() {
   }, [paginationStatus, loadMore]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
+    <div className="flex gap-6 md:grow md:min-h-0 w-full">
+      <FeedSidebar userId={user_id} />
+
       {/* Articles List Section */}
       <SectionCard
         icon={<NewspaperIcon className="size-7" />}
         title="Articles"
         description={`${unreadCount ?? 0} unread`}
-        className="md:w-1/3 md:min-h-0"
+        className="basis-1/3 min-h-0"
       >
         {isLoadingArticles ? (
           <div className="flex items-center justify-center py-8">
@@ -203,7 +206,7 @@ export default function Home() {
         description={
           selectedArticle ? selectedArticle.title : "No article selected"
         }
-        className="md:w-2/3 md:min-h-0"
+        className="basis-2/3 min-h-0"
       >
         <ScrollArea.Root className="flex grow min-h-0 w-full">
           <ScrollArea.Viewport className="flex grow min-h-0 p-4">
