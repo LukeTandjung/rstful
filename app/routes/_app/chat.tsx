@@ -7,38 +7,14 @@ import {
   ClockIcon,
   PlusIcon,
 } from "@heroicons/react/16/solid";
-import { SectionCard, ChatModeToggle, ConversationListItem } from "components";
+import { SectionCard, ConversationListItem, ChatModeMenu } from "components";
 import type { ChatMode } from "components";
 import { Button } from "@base-ui-components/react/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useHighlighter } from "services/highlighter";
-
-// Helper to convert URLs in text to clickable links
-const linkifyText = (text: string): React.ReactNode => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-
-  return parts.map((part, index) => {
-    if (urlRegex.test(part)) {
-      // Reset regex lastIndex since we're reusing it
-      urlRegex.lastIndex = 0;
-      return (
-        <a
-          key={index}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-link underline hover:text-link-hover"
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
-};
+import ReactMarkdown from "react-markdown";
 
 // localStorage helpers for persisting search state across page switches
 const SEARCH_STATE_KEY = "deep_search_state";
@@ -89,7 +65,6 @@ export default function Chat() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const hlNewConversation = useHighlighter();
-  const hlSendChat = useHighlighter();
 
   const [chatId, setChatId] = useState<Id<"group_chat"> | null>(null);
 
@@ -111,21 +86,20 @@ export default function Chat() {
   );
 
   const selectedConversation = conversations?.find((c) => c._id === chatId);
-  const effectiveMode = selectedConversation?.mode ?? chatMode;
+  const conversationMode = selectedConversation?.mode;
+  const effectiveMode: ChatMode =
+    conversationMode === "regular" || conversationMode === "deep_search"
+      ? conversationMode
+      : chatMode;
 
   const handleModeChange = (newMode: ChatMode) => {
     if (chatId) return;
     setChatMode(newMode);
   };
 
-  const handleNewConversation = async () => {
-    if (!viewer?._id) return;
-    const id = await createConversation({
-      user_id: viewer._id,
-      name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
-      mode: chatMode,
-    });
-    setChatId(id);
+  const handleNewConversation = () => {
+    setChatId(null);
+    setChatMode("regular");
   };
 
   const handleSelectConversation = (id: Id<"group_chat">) => {
@@ -164,7 +138,7 @@ export default function Chat() {
       if (!currentChatId) {
         currentChatId = await createConversation({
           user_id: viewer._id,
-          name: `New ${chatMode === "deep_search" ? "Deep Search" : "Chat"}`,
+          name: "...",
           mode: chatMode,
         });
         setChatId(currentChatId);
@@ -380,14 +354,6 @@ export default function Chat() {
       {/* Side Panel */}
       <div className="flex flex-col gap-4 md:w-64 shrink-0">
         <SectionCard
-          icon={<ChatBubbleLeftRightIcon className="size-7" />}
-          title="Chat Mode"
-          description="Select your chat type"
-        >
-          <ChatModeToggle mode={chatMode} onModeChange={handleModeChange} />
-        </SectionCard>
-
-        <SectionCard
           icon={<ClockIcon className="size-7" />}
           title="History"
           description="Recent conversations"
@@ -442,8 +408,10 @@ export default function Chat() {
       <SectionCard
         icon={<ChatBubbleLeftRightIcon className="size-7" />}
         title={
-          selectedConversation?.name ??
-          (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat")
+          selectedConversation?.name === "..."
+            ? "Generating name..."
+            : selectedConversation?.name ??
+              (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat")
         }
         description={cardDescription}
         className="md:min-h-0 md:grow"
@@ -463,9 +431,30 @@ export default function Chat() {
                     }`}
                   >
                     <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
-                      <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                        {linkifyText(message.content)}
-                      </div>
+                      {message.role === "user" ? (
+                        <div className="font-normal text-base leading-7 whitespace-pre-wrap">
+                          {message.content}
+                        </div>
+                      ) : (
+                        <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                          <ReactMarkdown
+                            components={{
+                              a: ({ href, children }) => (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-link underline hover:text-link-hover"
+                                >
+                                  {children}
+                                </a>
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -480,9 +469,24 @@ export default function Chat() {
                       lastAssistantMsg?.content === streamingContent.trim();
                     return !alreadySaved ? (
                       <div className="flex w-full justify-start">
-                        <div className="max-w-[80%] rounded-lg p-4 bg-background-select text-text">
-                          <div className="font-normal text-base leading-7 whitespace-pre-wrap">
-                            {linkifyText(streamingContent)}
+                        <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
+                          <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                            <ReactMarkdown
+                              components={{
+                                a: ({ href, children }) => (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-link underline hover:text-link-hover"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {streamingContent}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       </div>
@@ -501,29 +505,32 @@ export default function Chat() {
             </ScrollArea.Viewport>
           </ScrollArea.Root>
 
-          <div className="flex gap-3 p-4">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={placeholderText}
-              className="flex-1 bg-background px-3 py-2 rounded-lg text-base leading-7 text-text placeholder:text-text-alt resize-none border border-border-unfocus"
-              rows={2}
-              disabled={isStreaming}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isStreaming}
-              style={
-                {
-                  "--hl-bg": hlSendChat.bg,
-                  "--hl-text": hlSendChat.text,
-                } as React.CSSProperties
-              }
-              className="bg-(--hl-bg) text-(--hl-text) px-4 py-2 rounded-lg font-medium text-base leading-7 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <PaperAirplaneIcon className="size-5" />
-            </Button>
+          <div className="p-4">
+            <div className="flex flex-col self-stretch items-start gap-2 bg-background px-3 py-2 rounded-lg border border-border-unfocus">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={placeholderText}
+                className="w-full bg-transparent text-base leading-7 text-text placeholder:text-text-alt resize-none outline-none"
+                rows={2}
+                disabled={isStreaming}
+              />
+              <div className="flex flex-row w-full justify-between">
+                <ChatModeMenu
+                  mode={effectiveMode}
+                  onModeChange={handleModeChange}
+                  disabled={!!chatId || isStreaming}
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isStreaming}
+                  className="text-text-alt p-1 rounded hover:text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <PaperAirplaneIcon className="size-5" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </SectionCard>
