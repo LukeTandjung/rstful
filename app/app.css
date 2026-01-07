@@ -27,6 +27,34 @@
   --color-highlighter-teal: #7AA89F;     /* waveAqua2 */
   --color-highlighter-sky: #7FB4CA;      /* springBlue */
 
+  /* Glass card tokens */
+  --color-glass-bg: #f7f3e366;
+  --color-glass-border: #f7f3e34d;
+  --color-glass-highlight: #f7f3e3cc;
+  --color-glass-highlight-soft: #f7f3e380;
+
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1),
+                  inset 0 1px 0 var(--color-glass-highlight-soft),
+                  inset 0 -1px 0 #f7f3e31a,
+                  inset 0 0 30px 15px #f7f3e326;
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-glass-bg backdrop-blur-md border border-glass-border shadow-glass relative overflow-hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px;
+    background: linear-gradient(90deg, transparent, var(--color-glass-highlight), transparent);
+  }
+
+  .glass-card::after {
+    content: '';
+    @apply absolute top-0 left-0 w-px h-full;
+    background: linear-gradient(180deg, var(--color-glass-highlight), transparent, var(--color-glass-border));
+  }
 }
 
 html,
