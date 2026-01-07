@@ -48,7 +48,13 @@ export function ConversationListItem({
       onClick={() => onSelect(id)}
     >
       <ModeIcon className="size-4 shrink-0" />
-      <span className="font-normal text-sm leading-5 truncate grow">{name}</span>
+      {name === "..." ? (
+        <span className="font-normal text-sm leading-5 truncate grow text-text-alt animate-pulse">
+          Generating name...
+        </span>
+      ) : (
+        <span className="font-normal text-sm leading-5 truncate grow">{name}</span>
+      )}
 
       <DeleteConfirmDialog
         trigger={
