@@ -150,6 +150,32 @@ async function saveAssistantMessage(chatId: Id<"group_chat">, userId: Id<"users"
   }
 }
 
+async function generateConversationName(chatId: Id<"group_chat">, userMessage: string) {
+  if (!convexClient) return;
+
+  try {
+    const agentRunner = Effect.runSync(Effect.provide(AgentRunner, MainLayer));
+
+    const result = await Effect.runPromise(
+      agentRunner.run({
+        input: userMessage,
+        model: "openai/gpt-4o-mini",
+        systemPrompt: "Generate a short, concise title (3-5 words max) for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation.",
+      })
+    );
+
+    const name = result.finalOutput.trim().slice(0, 50);
+    if (name) {
+      await convexClient.mutation(api.chat.update_conversation_name, {
+        group_chat_id: chatId,
+        name,
+      });
+    }
+  } catch (error) {
+    console.error("Error generating conversation name:", error);
+  }
+}
+
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.json();
   const messages = body.messages || [];
@@ -164,6 +190,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const lastMessage = messages[messages.length - 1];
   const input = lastMessage?.content || "";
+
+  // Generate conversation name for new conversations (fire and forget)
+  const isNewConversation = messages.length === 1;
+  if (isNewConversation && chatId && input) {
+    generateConversationName(chatId, input);
+  }
 
   let context = "";
   let mcpServers: Array<string> = [];
@@ -358,37 +390,37 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
-  const result = await Effect.runPromise(
-    agentRunner.run({
-      input: finalInput,
-      model: "openai/gpt-5.1",
-      ...(mcpServers.length > 0 && { mcpServers }),
-      maxSteps: 10,
-      systemPrompt:
-        "You are a helpful assistant that answers questions about the user's saved articles.",
-    }),
-  );
-
-  // Convert to fake stream for compatibility with existing frontend
-  const responseText = result.finalOutput || "No response generated";
-
   const encoder = new TextEncoder();
   const readableStream = new ReadableStream({
     async start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", status: "generating" })}\n\n`));
 
-      // Stream word by word for better UX
-      const words = responseText.split(/(\s+)/);
-      for (const word of words) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", content: word })}\n\n`));
+      let fullResponse = "";
+
+      const stream = agentRunner.runStream({
+        input: finalInput,
+        model: "openai/gpt-5.1",
+        ...(mcpServers.length > 0 && { mcpServers }),
+        maxSteps: 10,
+        systemPrompt:
+          "You are a helpful assistant that answers questions about the user's saved articles. Always format URLs as markdown links: [link text](url).",
+      });
+
+      for await (const chunk of stream) {
+        const typedChunk = chunk as { choices?: Array<{ delta?: { content?: string } }> };
+        const content = typedChunk.choices?.[0]?.delta?.content;
+        if (content) {
+          fullResponse += content;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", content })}\n\n`));
+        }
       }
 
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       controller.close();
 
       // Save to database
-      if (chatId && userId) {
-        await saveAssistantMessage(chatId, userId, responseText);
+      if (chatId && userId && fullResponse) {
+        await saveAssistantMessage(chatId, userId, fullResponse);
       }
     },
   });
