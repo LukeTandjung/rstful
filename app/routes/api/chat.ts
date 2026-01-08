@@ -339,7 +339,7 @@ export async function action({ request }: ActionFunctionArgs) {
       ? await Promise.all([fetchSavedArticles(userId), fetchCachedArticles(userId)])
       : ["", ""];
 
-    mcpServers = ["joerup/exa-mcp", "simon-liang/brave-search-mcp"];
+    // MCP search servers removed - agent should use fetchArticleContent tool instead
 
     const hasSaved = savedArticles.length > 0;
     const hasCached = cachedArticles.length > 0;
@@ -417,13 +417,13 @@ export async function action({ request }: ActionFunctionArgs) {
         }
       }
 
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-
-      // Save to database
+      // Save to database BEFORE closing stream so Convex subscription has time to update
       if (chatId && userId && fullResponse) {
         await saveAssistantMessage(chatId, userId, fullResponse);
       }
+
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
     },
   });
 
