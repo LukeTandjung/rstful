@@ -1,5 +1,5 @@
 import { Tooltip } from "@base-ui-components/react/tooltip";
-import { EditFeedDialog } from "./EditFeedDialog";
+import { FeedContextMenu } from "./FeedContextMenu";
 import type { RssFeed } from "types";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -35,30 +35,29 @@ export function FeedIconItem({
 
   return (
     <Tooltip.Root>
-      <EditFeedDialog
+      <FeedContextMenu
         feed={feed}
         onRefresh={onRefresh}
         onEdit={onEdit}
         onRemove={onRemove}
-        trigger={
-          <Tooltip.Trigger
-            render={
-              <button className="relative size-8 rounded-lg bg-background flex items-center justify-center hover:bg-surface-alt transition-colors">
-                <img
-                  src={getFaviconUrl(feed.website_url)}
-                  alt={feed.name}
-                  className="size-8 rounded"
-                />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-error text-background text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </button>
-            }
-          />
-        }
-      />
+      >
+        <Tooltip.Trigger
+          render={
+            <button className="relative size-9 rounded-lg bg-background flex items-center justify-center hover:bg-surface-alt transition-colors">
+              <img
+                src={getFaviconUrl(feed.website_url)}
+                alt={feed.name}
+                className="size-9 rounded"
+              />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-error text-background text-xs font-medium min-w-5 h-5 flex items-center justify-center rounded-full px-1">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+          }
+        />
+      </FeedContextMenu>
       <Tooltip.Portal>
         <Tooltip.Positioner side="right" sideOffset={8}>
           <Tooltip.Popup className="bg-background-alt text-text px-2 py-1 rounded text-sm shadow-lg">

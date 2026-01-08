@@ -1,15 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Outlet, Navigate } from "react-router";
-import { Separator } from "@base-ui-components/react/separator";
 import { MenuBar } from "components";
-import {
-  Authenticated,
-  Unauthenticated,
-  AuthLoading,
-  useQuery,
-  useMutation,
-  useAction,
-} from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Effect } from "effect";
 import { RssFeedService, make_rss_feed_service_live } from "services/rss_feed";
@@ -47,8 +39,13 @@ export default function Layout() {
   const isAuthenticated = viewer !== undefined && viewer !== null;
   const isEmailVerified = viewer?.emailVerificationTime != null;
   const productId = configuredProducts?.monthlySubscription?.id;
-  const needsCheckoutRedirect = isAuthenticated && isEmailVerified && hasSubscription === false && productId;
-  const isReady = isAuthenticated && isEmailVerified && hasSubscription === true;
+  const needsCheckoutRedirect =
+    isAuthenticated &&
+    isEmailVerified &&
+    hasSubscription === false &&
+    productId;
+  const isReady =
+    isAuthenticated && isEmailVerified && hasSubscription === true;
 
   // Redirect to checkout if authenticated, verified, but no subscription
   useEffect(() => {
@@ -69,7 +66,12 @@ export default function Layout() {
           setIsRedirectingToCheckout(false);
         });
     }
-  }, [needsCheckoutRedirect, isRedirectingToCheckout, generateCheckoutLink, productId]);
+  }, [
+    needsCheckoutRedirect,
+    isRedirectingToCheckout,
+    generateCheckoutLink,
+    productId,
+  ]);
 
   useEffect(() => {
     // Only set up fetching if user is fully ready (authenticated, verified, subscribed)
@@ -146,7 +148,9 @@ export default function Layout() {
     return (
       <div className="flex items-center justify-center h-screen w-full">
         <p className="text-text">
-          {isRedirectingToCheckout ? "Redirecting to checkout..." : "Loading..."}
+          {isRedirectingToCheckout
+            ? "Redirecting to checkout..."
+            : "Loading..."}
         </p>
       </div>
     );
@@ -155,7 +159,7 @@ export default function Layout() {
   // User is authenticated, verified, and has subscription - show the app
   return (
     <div className="flex flex-col gap-6 h-screen p-6 w-full">
-      <MenuBar userName={viewer?.name} userId={user_id} />
+      <MenuBar />
       <Outlet />
     </div>
   );

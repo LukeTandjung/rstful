@@ -20,6 +20,8 @@ export {
   createQueryTools,
   type QueryToolDependencies,
   type SavedArticle,
+  fetchArticleContent,
+  type ArticleContent,
 } from "./tools";
 
 export {

@@ -43,7 +43,7 @@ export function AddFeedDialog({ onAdd }: AddFeedDialogProps) {
         style={
           { "--hl-bg": hl.bg, "--hl-text": hl.text } as React.CSSProperties
         }
-        className="size-8 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
+        className="size-9 rounded-full bg-(--hl-bg) flex items-center justify-center hover:opacity-80 transition-opacity"
       >
         <PlusIcon className="size-5 text-(--hl-text)" />
       </Dialog.Trigger>

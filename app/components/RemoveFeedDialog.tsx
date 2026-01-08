@@ -1,8 +1,8 @@
 import { AlertDialog } from "@base-ui-components/react/alert-dialog";
-import type { ReactElement } from "react";
 
 interface DeleteConfirmDialogProps {
-  trigger: ReactElement<Record<string, unknown>>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel?: string;
@@ -10,16 +10,15 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({
-  trigger,
+  open,
+  onOpenChange,
   title,
   description,
   confirmLabel = "Delete",
   onConfirm,
 }: DeleteConfirmDialogProps) {
   return (
-    <AlertDialog.Root>
-      <AlertDialog.Trigger render={trigger} />
-
+    <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
         <AlertDialog.Popup className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background-alt rounded-lg p-6 flex flex-col gap-3.5 max-w-md w-full">

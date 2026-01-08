@@ -327,7 +327,7 @@ export default function Chat() {
   const placeholderText =
     effectiveMode === "deep_search"
       ? "Describe the type of people you want to find online..."
-      : "Type your message... (Press Enter to send)";
+      : "Type your message...";
 
   const cardDescription =
     effectiveMode === "deep_search"
@@ -410,8 +410,8 @@ export default function Chat() {
         title={
           selectedConversation?.name === "..."
             ? "Generating name..."
-            : selectedConversation?.name ??
-              (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat")
+            : (selectedConversation?.name ??
+              (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat"))
         }
         description={cardDescription}
         className="md:min-h-0 md:grow"

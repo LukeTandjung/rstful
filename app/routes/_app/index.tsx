@@ -9,6 +9,8 @@ import {
   SectionCard,
   ArticleListItem,
   ArticleReader,
+  ArticleChatCard,
+  FeedSidebar,
 } from "components";
 
 export function meta({}: Route.MetaArgs) {
@@ -24,6 +26,7 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const viewer = useQuery(api.auth.currentUser);
   const [selectedArticle, setSelectedArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
+  const [chatArticle, setChatArticle] = useState<Doc<"cached_content"> | Doc<"saved_content"> | null>(null);
 
   // Get user_id from authenticated user
   const user_id = viewer?._id;
@@ -70,6 +73,15 @@ export default function Home() {
       markAsRead({ article_id: cachedArticle._id, user_id })
         .catch((error) => console.error("Failed to mark article as read:", error));
     }
+  };
+
+  const handleStartChat = (article: Doc<"cached_content"> | Doc<"saved_content">) => {
+    setSelectedArticle(article);
+    setChatArticle(article);
+  };
+
+  const handleCloseChat = () => {
+    setChatArticle(null);
   };
 
   const handleToggleStar = (articleId: string) => {
@@ -151,50 +163,55 @@ export default function Home() {
   }, [paginationStatus, loadMore]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
-      {/* Articles List Section */}
-      <SectionCard
-        icon={<NewspaperIcon className="size-7" />}
-        title="Articles"
-        description={`${unreadCount ?? 0} unread`}
-        className="md:w-1/3 md:min-h-0"
-      >
-        {isLoadingArticles ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="font-normal text-base leading-7 text-text-alt">
-              Loading articles...
-            </div>
-          </div>
-        ) : articles.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="font-normal text-base leading-7 text-text-alt">
-              No articles to display
-            </div>
-          </div>
-        ) : (
-          <ScrollArea.Root className="flex grow min-h-0 w-full">
-            <ScrollArea.Viewport ref={scrollRef} className="flex grow min-h-0">
-              <div className="flex flex-col gap-3 grow min-h-0">
-                {articles.map((article: Doc<"cached_content">) => (
-                    <ArticleListItem
-                      key={article._id}
-                      article={article}
-                      feedName={article.rss_feed_id ? feedMap.get(article.rss_feed_id)?.name : undefined}
-                      onSelect={handleLinkClick}
-                      onToggleStar={handleToggleStar}
-                      isStarred={isArticleStarred(article)}
-                    />
-                  ))}
-                {paginationStatus === "LoadingMore" && (
-                  <div className="py-4 text-center text-sm text-text-alt">
-                    Loading more...
-                  </div>
-                )}
+    <div className="flex gap-6 md:grow md:min-h-0 w-full">
+      <FeedSidebar userId={user_id} />
+
+      {/* Articles List Section - hidden when chat is active */}
+      {!chatArticle && (
+        <SectionCard
+          icon={<NewspaperIcon className="size-7" />}
+          title="Articles"
+          description={`${unreadCount ?? 0} unread`}
+          className="basis-1/3 min-h-0"
+        >
+          {isLoadingArticles ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="font-normal text-base leading-7 text-text-alt">
+                Loading articles...
               </div>
-            </ScrollArea.Viewport>
-          </ScrollArea.Root>
-        )}
-      </SectionCard>
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="font-normal text-base leading-7 text-text-alt">
+                No articles to display
+              </div>
+            </div>
+          ) : (
+            <ScrollArea.Root className="flex grow min-h-0 w-full">
+              <ScrollArea.Viewport ref={scrollRef} className="flex grow min-h-0">
+                <div className="flex flex-col gap-3 grow min-h-0">
+                  {articles.map((article: Doc<"cached_content">) => (
+                      <ArticleListItem
+                        key={article._id}
+                        article={article}
+                        feedName={article.rss_feed_id ? feedMap.get(article.rss_feed_id)?.name : undefined}
+                        onSelect={handleLinkClick}
+                        onToggleStar={handleToggleStar}
+                        onStartChat={handleStartChat}
+                        isStarred={isArticleStarred(article)}
+                      />
+                    ))}
+                  {paginationStatus === "LoadingMore" && (
+                    <div className="py-4 text-center text-sm text-text-alt">
+                      Loading more...
+                    </div>
+                  )}
+                </div>
+              </ScrollArea.Viewport>
+            </ScrollArea.Root>
+          )}
+        </SectionCard>
+      )}
 
       {/* Article Reader Section */}
       <SectionCard
@@ -203,7 +220,7 @@ export default function Home() {
         description={
           selectedArticle ? selectedArticle.title : "No article selected"
         }
-        className="md:w-2/3 md:min-h-0"
+        className={chatArticle ? "basis-1/2 min-h-0" : "basis-2/3 min-h-0"}
       >
         <ScrollArea.Root className="flex grow min-h-0 w-full">
           <ScrollArea.Viewport className="flex grow min-h-0 p-4">
@@ -211,6 +228,15 @@ export default function Home() {
           </ScrollArea.Viewport>
         </ScrollArea.Root>
       </SectionCard>
+
+      {/* Article Chat Section - shown when chat is active */}
+      {chatArticle && user_id && (
+        <ArticleChatCard
+          article={chatArticle}
+          userId={user_id}
+          onClose={handleCloseChat}
+        />
+      )}
     </div>
   );
 }

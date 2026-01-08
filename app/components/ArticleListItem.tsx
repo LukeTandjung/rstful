@@ -1,5 +1,5 @@
 import { Toggle } from "@base-ui-components/react/toggle";
-import { StarIcon as StarIconSolid } from "@heroicons/react/16/solid";
+import { StarIcon as StarIconSolid, ChatBubbleLeftRightIcon } from "@heroicons/react/16/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import type { Doc } from "convex/_generated/dataModel";
 import { useHighlighter } from "services/highlighter";
@@ -8,6 +8,7 @@ interface ArticleListItemProps {
   article: Doc<"cached_content"> | Doc<"saved_content">;
   onSelect?: (article: Doc<"cached_content"> | Doc<"saved_content">) => void;
   onToggleStar?: (articleId: string) => void;
+  onStartChat?: (article: Doc<"cached_content"> | Doc<"saved_content">) => void;
   isStarred?: boolean;
   feedName?: string | undefined;
 }
@@ -16,6 +17,7 @@ export function ArticleListItem({
   article,
   onSelect,
   onToggleStar,
+  onStartChat,
   isStarred = false,
   feedName = "Unknown Feed",
 }: ArticleListItemProps) {
@@ -60,29 +62,44 @@ export function ArticleListItem({
           </div>
         </div>
 
-        <Toggle
-          pressed={isStarred}
-          onPressedChange={() => onToggleStar?.(article._id)}
-          aria-label="Star article"
-          style={{ "--hl-star": hlStar.bg } as React.CSSProperties}
-          className="shrink-0 p-1 rounded"
-          render={(props, state) => (
-            <button
-              type="button"
-              {...props}
-              onClick={(e) => {
-                e.stopPropagation();
-                props.onClick?.(e);
-              }}
-            >
-              {state.pressed ? (
-                <StarIconSolid className="size-5 text-(--hl-star)" />
-              ) : (
-                <StarIconOutline className="size-5 text-text-alt hover:text-(--hl-star)" />
-              )}
-            </button>
-          )}
-        />
+        <div className="flex flex-col gap-1 shrink-0">
+          <Toggle
+            pressed={isStarred}
+            onPressedChange={() => onToggleStar?.(article._id)}
+            aria-label="Star article"
+            style={{ "--hl-star": hlStar.bg } as React.CSSProperties}
+            className="p-1 rounded"
+            render={(props, state) => (
+              <button
+                type="button"
+                {...props}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.onClick?.(e);
+                }}
+              >
+                {state.pressed ? (
+                  <StarIconSolid className="size-5 text-(--hl-star)" />
+                ) : (
+                  <StarIconOutline className="size-5 text-text-alt hover:text-(--hl-star)" />
+                )}
+              </button>
+            )}
+          />
+
+          <button
+            type="button"
+            aria-label="Chat about article"
+            style={{ "--hl-chat": hlStar.bg } as React.CSSProperties}
+            className="p-1 rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartChat?.(article);
+            }}
+          >
+            <ChatBubbleLeftRightIcon className="size-5 text-text-alt hover:text-(--hl-chat)" />
+          </button>
+        </div>
       </div>
 
       <div className="font-light text-sm leading-5 text-text-alt line-clamp-2">

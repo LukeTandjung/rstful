@@ -23,7 +23,11 @@ const modeConfig = {
   },
 };
 
-export function ChatModeMenu({ mode, onModeChange, disabled }: ChatModeMenuProps) {
+export function ChatModeMenu({
+  mode,
+  onModeChange,
+  disabled,
+}: ChatModeMenuProps) {
   const currentMode = modeConfig[mode];
   const CurrentIcon = currentMode.icon;
 
@@ -40,7 +44,7 @@ export function ChatModeMenu({ mode, onModeChange, disabled }: ChatModeMenuProps
 
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
-          <Menu.Popup className="bg-background rounded-lg p-1 shadow-lg border border-border-unfocus min-w-40">
+          <Menu.Popup className="bg-background rounded-lg p-1 shadow-lg min-w-40">
             <Menu.Item
               onClick={() => onModeChange("regular")}
               className="flex items-center gap-2 px-3 py-2 text-sm text-text rounded cursor-pointer hover:bg-background-alt transition-colors"
