@@ -15,6 +15,7 @@ import {
   OrchestratorAgentLive,
   type DeepSearchConfig,
   type ChemistryCriteria,
+  fetchArticleContent,
 } from "services/agents";
 
 const client = new Dedalus();
@@ -400,10 +401,11 @@ export async function action({ request }: ActionFunctionArgs) {
       const stream = agentRunner.runStream({
         input: finalInput,
         model: "openai/gpt-5.1",
+        tools: [fetchArticleContent],
         ...(mcpServers.length > 0 && { mcpServers }),
         maxSteps: 10,
         systemPrompt:
-          "You are a helpful assistant that answers questions about the user's saved articles. Always format URLs as markdown links: [link text](url).",
+          "You are a helpful assistant that answers questions about the user's RSS feeds and articles. When asked to summarize or discuss an article, use the fetchArticleContent tool to get the full article text from the URL. Always format URLs as markdown links: [link text](url).",
       });
 
       for await (const chunk of stream) {
