@@ -54,7 +54,7 @@ export function ArticleReader({ article }: ArticleReaderProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="font-light text-base leading-7 text-text prose prose-invert max-w-none">
+        <div className="font-light text-base leading-7 text-text prose prose-invert max-w-none prose-a:text-link prose-a:underline hover:prose-a:text-link-hover">
           {article.content ? (
             <div dangerouslySetInnerHTML={{ __html: article.content }} />
           ) : (
