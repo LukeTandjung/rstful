@@ -339,7 +339,10 @@ export async function action({ request }: ActionFunctionArgs) {
       ? await Promise.all([fetchSavedArticles(userId), fetchCachedArticles(userId)])
       : ["", ""];
 
-    // MCP search servers removed - agent should use fetchArticleContent tool instead
+    mcpServers = [
+      'joerup/exa-mcp',              // Semantic search engine
+      'simon-liang/brave-search-mcp' // Privacy-focused web search
+    ];
 
     const hasSaved = savedArticles.length > 0;
     const hasCached = cachedArticles.length > 0;
