@@ -33,14 +33,29 @@ export const fetch_user_feeds = action({
     const batches = chunkArray(feeds, FEED_BATCH_SIZE);
     let successful = 0;
     let failed = 0;
+    let totalNetChange = 0;
 
     for (const batch of batches) {
       const results = await Promise.allSettled(
         batch.map((feed: Doc<"rss_feed">) => fetch_single_feed(ctx, feed))
       );
 
-      successful += results.filter((r: PromiseSettledResult<unknown>) => r.status === "fulfilled").length;
-      failed += results.filter((r: PromiseSettledResult<unknown>) => r.status === "rejected").length;
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          successful++;
+          totalNetChange += result.value.netChange;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // Single update to user's total_unread_count after all feeds processed
+    if (totalNetChange !== 0) {
+      await ctx.runMutation(internal.rss_fetcher.update_user_unread_count, {
+        user_id: args.user_id,
+        delta: totalNetChange,
+      });
     }
 
     return {
@@ -103,7 +118,7 @@ async function fetch_single_feed(
     );
 
     // Store articles in cached_content (deduplication handled in mutation)
-    const inserted_count = await ctx.runMutation(internal.rss_fetcher.store_cached_articles, {
+    const result = await ctx.runMutation(internal.rss_fetcher.store_cached_articles, {
       user_id: feed.user_id,
       rss_feed_id: feed._id,
       articles: valid_articles,
@@ -117,7 +132,9 @@ async function fetch_single_feed(
       last_fetched: BigInt(Date.now()),
     });
 
-    return { success: true, articles_count: valid_articles.length };
+    // Return net change for caller to batch user update
+    const netChange = result.inserted - result.deletedUnread;
+    return { success: true, articles_count: valid_articles.length, netChange };
   } catch (error) {
     // Increment failure count (default to 0 if undefined)
     const current_failure_count = feed.failure_count ?? 0;
@@ -173,7 +190,7 @@ export const store_cached_articles = internalMutation({
       })
     ),
   },
-  handler: async (ctx, args): Promise<number> => {
+  handler: async (ctx, args): Promise<{ inserted: number; deletedUnread: number }> => {
     const currentLinks = new Set(args.articles.map((a) => a.link));
 
     // Get all existing cached articles for this feed to find stale ones
@@ -216,28 +233,19 @@ export const store_cached_articles = internalMutation({
       }
     }
 
-    // Update unread counts: net change = inserted - deleted_unread
+    // Update feed unread_count (feed-level update is safe, each feed is updated by one mutation)
     const netChange = inserted_count - deletedUnreadCount;
-
     if (netChange !== 0) {
-      // Update feed unread_count
       const feed = await ctx.db.get(args.rss_feed_id);
       if (feed) {
         const currentFeedCount = feed.unread_count ?? BigInt(0);
         const newFeedCount = BigInt(Math.max(0, Number(currentFeedCount) + netChange));
         await ctx.db.patch(args.rss_feed_id, { unread_count: newFeedCount });
       }
-
-      // Update user total_unread_count
-      const user = await ctx.db.get(args.user_id);
-      if (user) {
-        const currentUserCount = user.total_unread_count ?? BigInt(0);
-        const newUserCount = BigInt(Math.max(0, Number(currentUserCount) + netChange));
-        await ctx.db.patch(args.user_id, { total_unread_count: newUserCount });
-      }
     }
 
-    return inserted_count;
+    // Return counts so caller can batch the user update
+    return { inserted: inserted_count, deletedUnread: deletedUnreadCount };
   },
 });
 
@@ -260,6 +268,26 @@ export const update_feed_status = internalMutation({
       failure_count: args.failure_count,
       last_fetched: args.last_fetched,
     });
+  },
+});
+
+// Internal mutation to update user's total_unread_count (called once after all feeds processed)
+export const update_user_unread_count = internalMutation({
+  args: {
+    user_id: v.id("users"),
+    delta: v.number(),
+  },
+  handler: async (ctx, args) => {
+    if (args.delta === 0) return;
+
+    const user = await ctx.db.get(args.user_id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const currentCount = user.total_unread_count ?? BigInt(0);
+    const newCount = BigInt(Math.max(0, Number(currentCount) + args.delta));
+    await ctx.db.patch(args.user_id, { total_unread_count: newCount });
   },
 });
 

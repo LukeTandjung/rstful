@@ -2,6 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 
 export interface ArticleContent {
+  [key: string]: string | null;
   title: string;
   content: string;
   textContent: string;
@@ -52,12 +53,12 @@ async function fetchWithReadability(url: string): Promise<ArticleContent | strin
   }
 
   return {
-    title: article.title,
-    content: article.content,
-    textContent: article.textContent,
-    excerpt: article.excerpt,
-    byline: article.byline,
-    siteName: article.siteName,
+    title: article.title ?? "",
+    content: article.content ?? "",
+    textContent: article.textContent ?? "",
+    excerpt: article.excerpt ?? "",
+    byline: article.byline ?? null,
+    siteName: article.siteName ?? null,
   };
 }
 
