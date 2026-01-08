@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
@@ -33,6 +34,7 @@ export function ConversationListItem({
   onSelect,
   onDelete,
 }: ConversationListItemProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const ModeIcon = modeIcons[mode];
 
   const hl = useHighlighter()
@@ -56,15 +58,19 @@ export function ConversationListItem({
         <span className="font-normal text-sm leading-5 truncate grow">{name}</span>
       )}
 
+      <button
+        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-error/20 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          setDeleteDialogOpen(true);
+        }}
+      >
+        <XMarkIcon className="size-4 text-error" />
+      </button>
+
       <DeleteConfirmDialog
-        trigger={
-          <button
-            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-error/20 transition-opacity"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <XMarkIcon className="size-4 text-error" />
-          </button>
-        }
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
         title="Delete Conversation"
         description={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
         onConfirm={() => onDelete(id)}
