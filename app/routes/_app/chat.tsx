@@ -7,6 +7,7 @@ import {
   ClockIcon,
   PlusIcon,
 } from "@heroicons/react/16/solid";
+import { ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { SectionCard, ConversationListItem, ChatModeMenu } from "components";
 import type { ChatMode } from "components";
 import { Button } from "@base-ui-components/react/button";
@@ -61,8 +62,15 @@ export default function Chat() {
   const [chatMode, setChatMode] = useState<ChatMode>("regular");
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
   const [streamingContent, setStreamingContent] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleCopy = async (content: string, id: string) => {
+    await navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const hlNewConversation = useHighlighter();
 
@@ -430,30 +438,42 @@ export default function Chat() {
                       message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
+                    <div className={`max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text ${message.role === "assistant" ? "flex flex-col items-end" : ""}`}>
                       {message.role === "user" ? (
                         <div className="font-normal text-base leading-7 whitespace-pre-wrap">
                           {message.content}
                         </div>
                       ) : (
-                        <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
-                          <ReactMarkdown
-                            components={{
-                              a: ({ href, children }) => (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-link underline hover:text-link-hover"
-                                >
-                                  {children}
-                                </a>
-                              ),
-                            }}
+                        <>
+                          <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 self-stretch">
+                            <ReactMarkdown
+                              components={{
+                                a: ({ href, children }) => (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-link underline hover:text-link-hover"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(message.content, message._id)}
+                            className="mt-2 p-1 text-text-alt hover:text-text transition-colors"
                           >
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
+                            {copiedId === message._id ? (
+                              <CheckIcon className="size-4" />
+                            ) : (
+                              <ClipboardDocumentIcon className="size-4" />
+                            )}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
