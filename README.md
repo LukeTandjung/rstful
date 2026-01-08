@@ -47,6 +47,9 @@ AUTH_RESEND_KEY=re_xxxxxxxx
 # Dedalus Labs
 DEDALUS_API_KEY=<your-dedalus-api-key>
 
+# Jina Reader (article extraction)
+JINA_API_KEY=<your-jina-api-key>
+
 # Polar (payments)
 POLAR_ORGANIZATION_TOKEN=<your-polar-org-token>
 POLAR_WEBHOOK_SECRET=<your-polar-webhook-secret>
@@ -122,6 +125,7 @@ This is a one-time step. Products stay in sync via webhooks afterward.
 |----------|-------------|
 | `CONVEX_DEPLOY_KEY` | Your generated deploy key |
 | `DEDALUS_API_KEY` | Dedalus Labs production API key |
+| `JINA_API_KEY` | Jina Reader API key (for article extraction) |
 | `VITE_CONVEX_URL` | Your production Convex URL (e.g., `https://your-deployment.convex.cloud`) |
 
 > **Note:** While `convex deploy` automatically sets `VITE_CONVEX_URL` at build time for the frontend, server-side API routes need it available at runtime. Adding it explicitly to Vercel ensures both frontend and backend can access it.

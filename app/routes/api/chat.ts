@@ -340,8 +340,8 @@ export async function action({ request }: ActionFunctionArgs) {
       : ["", ""];
 
     mcpServers = [
-      'joerup/exa-mcp',              // Semantic search engine
-      'simon-liang/brave-search-mcp' // Privacy-focused web search
+      'joerup/exa-mcp',
+      'simon-liang/brave-search-mcp',
     ];
 
     const hasSaved = savedArticles.length > 0;
