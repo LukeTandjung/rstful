@@ -182,13 +182,13 @@ export function ChatInterface({
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
+                <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
                   {message.role === "user" ? (
                     <div className="font-normal text-base leading-7 whitespace-pre-wrap">
                       {message.content}
                     </div>
                   ) : (
-                    <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                    <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
                       <ReactMarkdown
                         components={{
                           a: ({ href, children }) => (
@@ -221,8 +221,8 @@ export function ChatInterface({
                   lastAssistantMsg?.content === streamingContent.trim();
                 return !alreadySaved ? (
                   <div className="flex w-full justify-start">
-                    <div className="max-w-[80%] rounded-lg p-4 bg-background text-text">
-                      <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                    <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
+                      <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
                         <ReactMarkdown
                           components={{
                             a: ({ href, children }) => (
