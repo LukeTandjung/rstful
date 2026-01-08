@@ -8,3 +8,8 @@ export {
   type QueryToolDependencies,
   type SavedArticle,
 } from "./query.tools";
+
+export {
+  fetchArticleContent,
+  type ArticleContent,
+} from "./article.tools";
