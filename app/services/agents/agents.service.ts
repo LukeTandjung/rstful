@@ -5,14 +5,13 @@ import type { Tool } from "dedalus-labs/lib/runner/types/tools";
 import type {
   AgentRunOptions,
   ParserResult,
-  ChemistryCriteria,
+  ExtractedFact,
   ContentCreator,
   Platform,
   FootprintResult,
   JudgeResult,
   DeepSearchConfig,
   DeepSearchResult,
-  StoredChemistryCriteria,
 } from "./agents.types";
 import {
   AgentRunnerError,
@@ -82,8 +81,8 @@ export class JudgeAgent extends Context.Tag("JudgeAgent")<
   JudgeAgent,
   {
     readonly evaluate: (
-      userCriteria: ChemistryCriteria,
-      candidateFootprint: ChemistryCriteria
+      userFacts: ReadonlyArray<ExtractedFact>,
+      creatorFacts: ReadonlyArray<ExtractedFact>
     ) => Effect.Effect<JudgeResult, JudgeAgentError>;
   }
 >() {}
@@ -98,7 +97,7 @@ export class DeepSearchOrchestrator extends Context.Tag("DeepSearchOrchestrator"
       config: DeepSearchConfig,
       conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
       onSearchStart?: OnSearchStartCallback,
-      cachedCriteria?: StoredChemistryCriteria
+      cachedFacts?: Array<ExtractedFact>
     ) => Effect.Effect<DeepSearchResult, DeepSearchError>;
   }
 >() {}

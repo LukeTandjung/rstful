@@ -1,9 +1,4 @@
 export {
-  createChemistryTools,
-  type ChemistryToolDependencies,
-} from "./chemistry.tools";
-
-export {
   createQueryTools,
   type QueryToolDependencies,
   type SavedArticle,
@@ -13,3 +8,12 @@ export {
   fetchArticleContent,
   type ArticleContent,
 } from "./article.tools";
+
+export {
+  createKnowledgeGraphTools,
+  verbalizeGraph,
+  verbalizeGraphForPrompt,
+  verbalizeFacts,
+  verbalizeFactsForPrompt,
+  type KnowledgeGraphToolDependencies,
+} from "./knowledge.tools";

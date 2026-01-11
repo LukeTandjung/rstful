@@ -3,26 +3,34 @@ export type { Tool } from "dedalus-labs/lib/runner/types/tools";
 export type { RunResult } from "dedalus-labs/lib/runner/runner";
 
 export {
-  ChemistryCriteria,
+  ExtractedFact,
   XHandle,
   FootprintResult,
   XUser,
   JudgeResult,
   ParserResult,
-  StoredChemistryCriteria,
   DeepSearchConfig,
   DeepSearchResult,
+  KnowledgeGraphEntity,
+  KnowledgeGraphRelationship,
+  KnowledgeGraphUpdate,
+  ArticleChatResponse,
+  KnowledgeGraphVertex,
+  KnowledgeGraphEdge,
+  KnowledgeGraphSubgraph,
 } from "./agents.types";
 
 export {
-  createChemistryTools,
-  type ChemistryToolDependencies,
   createQueryTools,
   type QueryToolDependencies,
   type SavedArticle,
   fetchArticleContent,
   type ArticleContent,
+  createKnowledgeGraphTools,
+  type KnowledgeGraphToolDependencies,
 } from "./tools";
+
+export { ARTICLE_CHAT_PROMPT } from "./prompts";
 
 export {
   AgentRunnerError,
@@ -52,4 +60,5 @@ export {
   JudgeAgentLive,
   DeepSearchOrchestratorLive,
   AllAgentsLive,
+  wrapJsonSchema,
 } from "./agents.effect";

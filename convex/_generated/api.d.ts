@@ -13,8 +13,8 @@ import type * as auth_ResendOTPEmailVerification from "../auth/ResendOTPEmailVer
 import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordReset.js";
 import type * as cached_content from "../cached_content.js";
 import type * as chat from "../chat.js";
-import type * as chemistry_embedding from "../chemistry_embedding.js";
 import type * as http from "../http.js";
+import type * as knowledge_graph from "../knowledge_graph.js";
 import type * as migrations from "../migrations.js";
 import type * as polar from "../polar.js";
 import type * as rss_feed from "../rss_feed.js";
@@ -34,8 +34,8 @@ declare const fullApi: ApiFromModules<{
   "auth/ResendOTPPasswordReset": typeof auth_ResendOTPPasswordReset;
   cached_content: typeof cached_content;
   chat: typeof chat;
-  chemistry_embedding: typeof chemistry_embedding;
   http: typeof http;
+  knowledge_graph: typeof knowledge_graph;
   migrations: typeof migrations;
   polar: typeof polar;
   rss_feed: typeof rss_feed;

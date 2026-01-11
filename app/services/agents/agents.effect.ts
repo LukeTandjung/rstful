@@ -7,7 +7,7 @@ import {
   FootprintResult as FootprintResultSchema,
   JudgeResult as JudgeResultSchema,
   type AgentRunOptions,
-  type ChemistryCriteria,
+  type ExtractedFact,
   type JudgeResult,
   type ContentCreator,
   type Platform,
@@ -15,8 +15,8 @@ import {
   type Creator,
   type DeepSearchConfig,
   type DeepSearchResult,
-  type StoredChemistryCriteria,
 } from "./agents.types";
+import { verbalizeFactsForPrompt } from "./tools";
 import {
   DedalusRunnerService,
   AgentRunner,
@@ -146,7 +146,7 @@ const makeStrictSchema = (
 };
 
 // Wrap Effect's JSON Schema in OpenAI's response_format structure
-const wrapJsonSchema = (schema: unknown, name: string) => {
+export const wrapJsonSchema = (schema: unknown, name: string) => {
   const fixed = fixJsonSchemaKeys(schema) as Record<string, unknown>;
 
   // Remove $schema as OpenAI doesn't want it
@@ -172,165 +172,32 @@ const wrapJsonSchema = (schema: unknown, name: string) => {
 const pickRandom = <T>(arr: Array<T>): T =>
   arr[Math.floor(Math.random() * arr.length)];
 
-// Helper to generate a random number in range
-const randomInRange = (min: number, max: number): number =>
-  Math.round((Math.random() * (max - min) + min) * 10) / 10;
+// Generate random facts for users who don't answer questions properly
+export const generateRandomFacts = (): Array<ExtractedFact> => {
+  const factPool: Array<{ subject: string; predicate: string; object: string; category: string }> = [
+    { subject: "user", predicate: "prefers", object: "first-principles reasoning", category: "thinking_style" },
+    { subject: "user", predicate: "values", object: "empirical evidence", category: "thinking_style" },
+    { subject: "user", predicate: "enjoys", object: "narrative explanations", category: "thinking_style" },
+    { subject: "user", predicate: "appreciates", object: "rigorous analysis", category: "value" },
+    { subject: "user", predicate: "values", object: "clarity", category: "value" },
+    { subject: "user", predicate: "prefers", object: "depth over breadth", category: "preference" },
+    { subject: "user", predicate: "enjoys", object: "contrarian perspectives", category: "personality" },
+    { subject: "user", predicate: "prefers", object: "accessible communication", category: "preference" },
+    { subject: "user", predicate: "values", object: "intellectual honesty", category: "value" },
+    { subject: "user", predicate: "is interested in", object: "systems thinking", category: "interest" },
+  ];
 
-// Generate a random chemistry criteria for users who don't answer questions properly
-export const generateRandomChemistryCriteria = (): ChemistryCriteria => ({
-  epistemic_architecture: {
-    primary_mode: pickRandom([
-      "first_principles",
-      "empirical",
-      "narrative",
-      "dialectical",
-      "intuitive",
-    ]),
-    evidence_hierarchy: pickRandom([
-      ["data", "expert opinion", "anecdotes"],
-      ["logic", "empirical evidence", "tradition"],
-      ["personal experience", "scientific studies", "intuition"],
-    ]),
-    certainty_stance: pickRandom([
-      "seeking closure",
-      "embracing ambiguity",
-      "epistemic humility",
-      "radical skepticism",
-    ]),
-    knowledge_model: pickRandom([
-      "monolithic truth",
-      "perspectival shards",
-      "socially constructed",
-      "pragmatic instrument",
-    ]),
-  },
-  value_hierarchy: {
-    primary_good: pickRandom([
-      "truth",
-      "freedom",
-      "harmony",
-      "progress",
-      "justice",
-    ]),
-    non_negotiables: pickRandom([
-      ["honesty", "autonomy"],
-      ["fairness", "compassion"],
-      ["integrity", "growth"],
-    ]),
-    typical_tradeoffs: pickRandom([
-      "efficiency vs. thoroughness",
-      "individual vs. collective",
-      "stability vs. innovation",
-    ]),
-    moral_foundations: {
-      care_vs_harm: randomInRange(0.3, 0.9),
-      fairness_vs_cheating: randomInRange(0.3, 0.9),
-      loyalty_vs_betrayal: randomInRange(0.3, 0.9),
-      authority_vs_subversion: randomInRange(0.3, 0.9),
-      sanctity_vs_degradation: randomInRange(0.3, 0.9),
-      liberty_vs_oppression: randomInRange(0.3, 0.9),
-    },
-  },
-  cognitive_fingerprint: {
-    reasoning_pattern: pickRandom([
-      "deductive reduction",
-      "analogical mapping",
-      "constraint propagation",
-      "pattern synthesis",
-    ]),
-    abstraction_level: pickRandom([
-      "concrete operations",
-      "systems thinking",
-      "meta-theoretic",
-      "ontological",
-    ]),
-    recurrent_metaphors: pickRandom([
-      ["building", "growing"],
-      ["journey", "discovery"],
-      ["battle", "strategy"],
-    ]),
-    mental_toolkit: pickRandom([
-      ["first principles", "thought experiments"],
-      ["data analysis", "pattern recognition"],
-      ["storytelling", "analogies"],
-    ]),
-  },
-  temporal_orientation: {
-    past_weight: randomInRange(0.1, 0.5),
-    present_weight: randomInRange(0.2, 0.5),
-    future_weight: randomInRange(0.2, 0.5),
-    change_velocity: pickRandom([
-      "revolutionary",
-      "evolutionary",
-      "conservative",
-      "cyclical",
-    ]),
-  },
-  aspirational_vector: {
-    target_state: pickRandom([
-      "understanding",
-      "mastery",
-      "influence",
-      "contribution",
-    ]),
-    utopia_distance: randomInRange(0.3, 0.8),
-    action_orientation: pickRandom([
-      "theory",
-      "praxis",
-      "propaganda",
-      "community-building",
-    ]),
-  },
-  affective_signature: {
-    emotional_register: pickRandom([
-      "playful irreverence",
-      "grave responsibility",
-      "earnest optimism",
-      "detached analysis",
-    ]),
-    energy_level: pickRandom(["intense", "measured", "calm", "urgent"]),
-    conflict_stance: pickRandom([
-      "confrontational",
-      "conciliatory",
-      "avoidant",
-      "dialectical",
-    ]),
-  },
-  communication_geometry: {
-    density: pickRandom([
-      "terse aphorisms",
-      "dense paragraphs",
-      "exploratory threads",
-    ]),
-    formality: pickRandom([
-      "academic",
-      "conversational",
-      "technical slang",
-      "poetic",
-    ]),
-    audience_assumption: pickRandom([
-      "peer expert",
-      "educated layperson",
-      "student",
-      "adversary",
-    ]),
-  },
-  edge_or_center: {
-    contrarian_score: randomInRange(0.2, 0.8),
-    orthodoxy_alignment: pickRandom([
-      "dissident",
-      "reformer",
-      "insider",
-      "establishment",
-    ]),
-    risk_tolerance: pickRandom([
-      "revolutionary",
-      "experimental",
-      "cautious",
-      "conservative",
-    ]),
-  },
-});
+  // Pick 5-8 random facts
+  const count = 5 + Math.floor(Math.random() * 4);
+  const shuffled = [...factPool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map((f) => ({
+    subject: f.subject,
+    predicate: f.predicate,
+    object: f.object,
+    category: f.category,
+    confidence: 0.5 + Math.random() * 0.3, // Random confidence 0.5-0.8
+  }));
+};
 
 export const AgentRunnerLive = Layer.effect(
   AgentRunner,
@@ -339,22 +206,19 @@ export const AgentRunnerLive = Layer.effect(
       run: (options: AgentRunOptions) =>
         Effect.tryPromise<RunResult, AgentRunnerError>({
           try: async () => {
-            const result = await runner.run({
-              input: options.input,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const runParams: any = {
               model: options.model,
-              ...(options.mcpServers && { mcpServers: options.mcpServers }),
-              ...(options.tools && { tools: options.tools }),
-              ...(options.maxSteps && { maxSteps: options.maxSteps }),
-              ...(options.systemPrompt && {
-                instructions: options.systemPrompt,
-              }),
-              ...(options.responseFormat && {
-                responseFormat: options.responseFormat as unknown as {
-                  [key: string]: unknown;
-                },
-              }),
-              ...(options.policy && { policy: options.policy }),
-            });
+            };
+            if (options.input) runParams.input = options.input;
+            if (options.messages && options.messages.length > 0) runParams.messages = options.messages;
+            if (options.mcpServers) runParams.mcpServers = options.mcpServers;
+            if (options.tools) runParams.tools = options.tools;
+            if (options.maxSteps) runParams.maxSteps = options.maxSteps;
+            if (options.systemPrompt) runParams.instructions = options.systemPrompt;
+            if (options.responseFormat) runParams.responseFormat = options.responseFormat;
+            if (options.policy) runParams.policy = options.policy;
+            const result = await runner.run(runParams);
             if (Symbol.asyncIterator in result) {
               throw new Error("Streaming not supported in this context");
             }
@@ -367,20 +231,18 @@ export const AgentRunnerLive = Layer.effect(
         }),
 
       runStream: (options: AgentRunOptions): AsyncIterable<unknown> => {
-        const streamPromise = runner.run({
-          input: options.input,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const streamParams: any = {
           model: options.model,
-          ...(options.mcpServers && { mcpServers: options.mcpServers }),
-          ...(options.tools && { tools: options.tools }),
-          ...(options.maxSteps && { maxSteps: options.maxSteps }),
-          ...(options.systemPrompt && { instructions: options.systemPrompt }),
-          ...(options.responseFormat && {
-            responseFormat: options.responseFormat as unknown as {
-              [key: string]: unknown;
-            },
-          }),
           stream: true,
-        });
+        };
+        if (options.input) streamParams.input = options.input;
+        if (options.mcpServers) streamParams.mcpServers = options.mcpServers;
+        if (options.tools) streamParams.tools = options.tools;
+        if (options.maxSteps) streamParams.maxSteps = options.maxSteps;
+        if (options.systemPrompt) streamParams.instructions = options.systemPrompt;
+        if (options.responseFormat) streamParams.responseFormat = options.responseFormat;
+        const streamPromise = runner.run(streamParams);
 
         return {
           [Symbol.asyncIterator]: async function* () {
@@ -408,7 +270,7 @@ export const QueryAgentLive = Layer.effect(
               ? `Context: ${context}\n\nQuestion: ${input}`
               : input,
             model: "openai/gpt-5.1",
-            mcpServers: ["joerup/exa-mcp", "simon-liang/brave-search-mcp"],
+            mcpServers: ["joerup/exa-mcp", "windsor/brave-search-mcp"],
             ...(tools && { tools }),
             maxSteps: 10,
           }),
@@ -453,10 +315,8 @@ export const ParserAgentLive = Layer.effect(
       ) =>
         pipe(
           run({
-            input:
-              conversationHistory.length > 0
-                ? `Conversation so far:\n${conversationHistory.map((m) => `${m.role}: ${m.content}`).join("\n")}\n\nLatest user message: ${input}`
-                : input,
+            // Append current input to messages array - SDK ignores `input` when `messages` is present
+            messages: [...conversationHistory, { role: "user" as const, content: input }],
             model: "openai/gpt-5.1",
             systemPrompt: PARSER_PROMPT,
             responseFormat: wrapJsonSchema(
@@ -615,12 +475,12 @@ export const JudgeAgentLive = Layer.effect(
   AgentRunner.pipe(
     Effect.map(({ run }) => ({
       evaluate: (
-        userCriteria: ChemistryCriteria,
-        candidateFootprint: ChemistryCriteria,
+        userFacts: ReadonlyArray<ExtractedFact>,
+        creatorFacts: ReadonlyArray<ExtractedFact>,
       ) =>
         pipe(
           run({
-            input: `User Chemistry Criteria:\n${JSON.stringify(userCriteria, null, 2)}\n\nCandidate Footprint:\n${JSON.stringify(candidateFootprint, null, 2)}`,
+            input: `${verbalizeFactsForPrompt(userFacts, "User profile")}\n\n${verbalizeFactsForPrompt(creatorFacts, "Creator profile")}`,
             model: "openai/gpt-4o",
             systemPrompt: JUDGE_PROMPT,
             responseFormat: wrapJsonSchema(
@@ -666,12 +526,12 @@ export const DeepSearchOrchestratorLive = Layer.effect(
           content: string;
         }>,
         onSearchStart?: OnSearchStartCallback,
-        cachedCriteria?: StoredChemistryCriteria,
+        cachedFacts?: Array<ExtractedFact>,
       ) => {
         const loop = (
           compatibilityString: string,
           platform: Platform,
-          chemistryCriteria: ChemistryCriteria,
+          userFacts: ReadonlyArray<ExtractedFact>,
           loopCount: number,
           totalSearched: number,
           qualifiedCreators: Array<{ user: Creator; score: JudgeResult }>,
@@ -730,12 +590,12 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                         item,
                       ): item is {
                         result: FootprintResult & {
-                          footprint: ChemistryCriteria;
+                          facts: Array<ExtractedFact>;
                         };
                         creator: ContentCreator;
                       } =>
                         !item.result.skip &&
-                        item.result.footprint !== undefined,
+                        item.result.facts !== undefined,
                     )
                     .map(({ result, creator }, i) => ({
                       id: `creator-${totalSearched + i}`,
@@ -743,7 +603,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                       platform: creator.platform,
                       profileUrl: creator.profileUrl,
                       bio: creator.bio,
-                      footprint: result.footprint,
+                      facts: result.facts,
                       rawData: {},
                     })),
                 ),
@@ -755,7 +615,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                   creators,
                   (creator) =>
                     pipe(
-                      judge.evaluate(chemistryCriteria, creator.footprint),
+                      judge.evaluate(userFacts, creator.facts),
                       Effect.map((score) => ({ user: creator, score })),
                     ),
                   { concurrency: 10 },
@@ -805,7 +665,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                   qualifiedUsers: allQualified,
                   totalSearched: newTotalSearched,
                   loopsExecuted: newLoopCount,
-                  chemistryCriteria,
+                  userFacts: [...userFacts],
                 });
               }
 
@@ -815,7 +675,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                   qualifiedUsers: allQualified,
                   totalSearched: newTotalSearched,
                   loopsExecuted: newLoopCount,
-                  chemistryCriteria,
+                  userFacts: [...userFacts],
                 });
               }
 
@@ -835,7 +695,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
               return loop(
                 compatibilityString,
                 platform,
-                chemistryCriteria,
+                userFacts,
                 newLoopCount,
                 newTotalSearched,
                 allQualified,
@@ -845,9 +705,9 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             }),
           );
 
-        // Build input with existing chemistry profile context if available
-        const parserInput = cachedCriteria
-          ? `EXISTING CHEMISTRY PROFILE (use as baseline):\n${JSON.stringify(cachedCriteria.criteria, null, 2)}\n\n---\n\nUser request: ${userQuery}`
+        // Build input with existing facts context if available
+        const parserInput = cachedFacts && cachedFacts.length > 0
+          ? `EXISTING USER PROFILE (use as baseline):\n${verbalizeFactsForPrompt(cachedFacts, "Known facts about user")}\n\n---\n\nUser request: ${userQuery}`
           : userQuery;
 
         return pipe(
@@ -873,24 +733,23 @@ export const DeepSearchOrchestratorLive = Layer.effect(
             }
 
             // Either status is "complete" OR we're forcing complete because user already answered
-            let { compatibility_string, platform, chemistry_criteria } =
-              parserResult;
+            let { compatibility_string, platform, user_facts } = parserResult;
 
             // Handle missing fields with fallbacks
-            if (!compatibility_string || !platform || !chemistry_criteria) {
+            if (!compatibility_string || !platform || !user_facts || user_facts.length === 0) {
               if (alreadyAskedQuestions) {
                 // User didn't answer properly - use fallbacks
                 console.log(
                   "Parser failed to extract fields from user answers, using fallbacks",
                 );
 
-                // Use cached criteria or generate random
-                if (!chemistry_criteria) {
-                  chemistry_criteria = cachedCriteria?.criteria ?? generateRandomChemistryCriteria();
+                // Use cached facts or generate random
+                if (!user_facts || user_facts.length === 0) {
+                  user_facts = cachedFacts && cachedFacts.length > 0 ? cachedFacts : generateRandomFacts();
                   console.log(
-                    cachedCriteria
-                      ? "Using cached chemistry criteria"
-                      : "Generated random chemistry criteria",
+                    cachedFacts && cachedFacts.length > 0
+                      ? "Using cached user facts"
+                      : "Generated random user facts",
                   );
                 }
 
@@ -924,7 +783,7 @@ export const DeepSearchOrchestratorLive = Layer.effect(
                 loop(
                   compatibility_string,
                   platform,
-                  chemistry_criteria,
+                  user_facts,
                   0,
                   0,
                   [],
