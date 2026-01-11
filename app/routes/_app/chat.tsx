@@ -63,7 +63,6 @@ export default function Chat() {
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
   const [streamingContent, setStreamingContent] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleCopy = async (content: string, id: string) => {
@@ -317,13 +316,6 @@ export default function Chat() {
     }
   }, [chatId, messages?.length]);
 
-  // Auto-scroll when messages or streaming content changes
-  useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages, streamingContent, streamStatus]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -426,10 +418,7 @@ export default function Chat() {
       >
         <div className="flex flex-col grow min-h-0 w-full">
           <ScrollArea.Root className="flex grow min-h-0 w-full">
-            <ScrollArea.Viewport
-              ref={scrollRef}
-              className="flex grow min-h-0 w-full"
-            >
+            <ScrollArea.Viewport className="flex grow min-h-0 w-full">
               <div className="flex flex-col gap-4 p-4 pb-8 w-full">
                 {messages?.map((message) => (
                   <div

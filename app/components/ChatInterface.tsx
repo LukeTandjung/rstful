@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { PaperAirplaneIcon } from "@heroicons/react/16/solid";
 import { ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
@@ -31,7 +31,6 @@ export function ChatInterface({
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
   const [streamingContent, setStreamingContent] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleCopy = async (content: string, id: string) => {
@@ -46,14 +45,6 @@ export function ChatInterface({
     api.chat.get_messages,
     chatId ? { group_chat_id: chatId } : "skip",
   );
-
-  // Auto-scroll when messages or streaming content changes
-  useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages, streamingContent, streamStatus]);
 
   const parseSSEStream = async (response: Response) => {
     const reader = response.body?.getReader();
@@ -178,10 +169,7 @@ export function ChatInterface({
   return (
     <div className="flex flex-col grow min-h-0 w-full">
       <ScrollArea.Root className="flex grow min-h-0 w-full">
-        <ScrollArea.Viewport
-          ref={scrollRef}
-          className="flex grow min-h-0 w-full"
-        >
+        <ScrollArea.Viewport className="flex grow min-h-0 w-full">
           <div className="flex flex-col gap-4 p-4 pb-8 w-full">
             {messages?.map((message) => (
               <div
