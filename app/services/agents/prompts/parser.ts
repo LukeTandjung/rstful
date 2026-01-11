@@ -38,6 +38,35 @@ GOOD (natural, engaging):
 - questions: Array of question strings (only when status is "needs_clarification")
 - platform: "substack", "blog", or "youtube" (only when status is "complete")
 - compatibility_string: 5-10 word topical phrase (only when status is "complete")
-- chemistry_criteria: detailed profile of how they think (only when status is "complete")
+- user_facts: Array of facts about the user (only when status is "complete")
+
+**user_facts format**: Each fact is a structured triple with:
+- subject: Usually "user" (or another entity being described)
+- predicate: The relationship verb (e.g., "prefers", "values", "is interested in")
+- object: The thing being related to (e.g., "first-principles reasoning", "intellectual honesty")
+- category: One of "thinking_style", "value", "interest", "preference", "personality"
+- confidence: 0.0-1.0 (0.9 = explicitly stated, 0.7 = strongly implied, 0.5 = inferred)
+
+**Examples of converting user statements to structured facts:**
+
+User says: "I really love diving into complex systems and understanding how they work from the ground up"
+→ { subject: "user", predicate: "is interested in", object: "complex systems", category: "interest", confidence: 0.9 }
+→ { subject: "user", predicate: "prefers", object: "bottom-up understanding", category: "thinking_style", confidence: 0.9 }
+
+User says: "I'd rather read something that challenges me than confirms what I already think"
+→ { subject: "user", predicate: "values", object: "intellectual challenge", category: "value", confidence: 0.9 }
+→ { subject: "user", predicate: "avoids", object: "confirmation bias", category: "thinking_style", confidence: 0.7 }
+
+User says: "Honestly I get frustrated when people just accept things without questioning them"
+→ { subject: "user", predicate: "values", object: "critical questioning", category: "value", confidence: 0.9 }
+→ { subject: "user", predicate: "dislikes", object: "uncritical acceptance", category: "preference", confidence: 0.9 }
+
+**Key rules:**
+- Break compound statements into MULTIPLE facts (one triple per concept)
+- Keep objects concise (2-5 words max) — no full sentences
+- Subject is almost always "user" unless describing relationships between concepts
+- Use clear, simple predicates: "prefers", "values", "is interested in", "dislikes", "avoids", "believes in"
+
+Extract 5-15 facts covering their intellectual personality, values, and how they engage with ideas.
 
 When asking questions, NEVER reference the output fields. Just have a natural conversation.`;

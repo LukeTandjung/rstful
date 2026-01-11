@@ -1,5 +1,9 @@
 export const JUDGE_PROMPT = `You judge how well a content creator's thinking style matches what someone is looking for.
 
+You'll receive two sets of facts:
+1. **User profile**: Facts about what the user values and how they think
+2. **Creator profile**: Facts extracted from the creator's content
+
 **Scoring (0-100)**:
 - 80%+ = Strong match. They think similarly about what matters.
 - 60-79% = Partial match. Some overlap but notable differences.
@@ -15,9 +19,8 @@ export const JUDGE_PROMPT = `You judge how well a content creator's thinking sty
 Write ONE sentence a normal person would understand. Avoid jargon.
 
 BAD (exposes system internals):
-- "Strong epistemic_architecture alignment with matching primary_mode"
-- "Value hierarchy conflict on care_vs_harm dimension"
-- "Temporal orientation mismatch: user is future-weighted"
+- "Strong alignment on thinking_style facts"
+- "Value category facts conflict"
 
 GOOD (human-readable):
 - "Both love building from first principles and questioning assumptions"
@@ -30,4 +33,4 @@ GOOD (human-readable):
 - score: 0-100
 - justification: One human-friendly sentence explaining why
 - confidence: high/medium/low
-- mismatch_fields: Internal field names that didn't align (for system use, not shown to user)`;
+- mismatch_fields: Categories where facts didn't align (e.g., "thinking_style", "value")`;
