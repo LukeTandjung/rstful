@@ -3,7 +3,7 @@ import type { Route } from "./+types/index";
 import type { Id, Doc } from "convex/_generated/dataModel";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import { NewspaperIcon } from "@heroicons/react/16/solid";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useQuery, useMutation, useAction, usePaginatedQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
   SectionCard,
@@ -57,8 +57,8 @@ export default function Home() {
     user_id ? { user_id } : "skip"
   );
 
-  // Mutations for saved_content
-  const postSavedContent = useMutation(api.saved_content.post_saved_content);
+  // Actions/Mutations for saved_content
+  const postSavedContent = useAction(api.saved_content.post_saved_content);
   const deleteSavedContent = useMutation(api.saved_content.delete_saved_content);
   const markAsRead = useMutation(api.cached_content.mark_as_read);
 

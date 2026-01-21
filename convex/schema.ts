@@ -53,9 +53,15 @@ export default defineSchema({
     link: v.string(),
     pub_date: v.optional(v.int64()),
     author: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
   })
     .index("by_user_id", ["user_id"])
-    .index("by_rss_feed_id", ["rss_feed_id"]),
+    .index("by_rss_feed_id", ["rss_feed_id"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["user_id"],
+    }),
 
   cached_content: defineTable({
     user_id: v.id("users"),
@@ -67,11 +73,17 @@ export default defineSchema({
     pub_date: v.optional(v.int64()),
     is_read: v.boolean(),
     author: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
   })
     .index("by_user_id", ["user_id"])
     .index("by_rss_feed_id", ["rss_feed_id"])
     .index("by_link", ["link"])
-    .index("by_user_id_pub_date", ["user_id", "pub_date"]),
+    .index("by_user_id_pub_date", ["user_id", "pub_date"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["user_id"],
+    }),
 
   group_chat: defineTable({
     name: v.string(),

@@ -1,8 +1,10 @@
-import { internalMutation, internalAction } from "./_generated/server";
+import { internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 import Dedalus from "dedalus-labs";
+
+const EMBEDDING_BATCH_SIZE = 10;
 
 const FEED_BATCH_SIZE = 10;
 
@@ -183,6 +185,145 @@ export const backfill_update_users = internalMutation({
       feedsProcessed: args.feedsProcessed,
       usersUpdated,
     };
+  },
+});
+
+// ============================================================================
+// EMBEDDING BACKFILL MIGRATION
+// ============================================================================
+
+/**
+ * Backfill embeddings for saved_content or cached_content tables.
+ * Run: bunx convex run --prod migrations:backfill_embeddings '{"table": "saved_content"}'
+ * Run: bunx convex run --prod migrations:backfill_embeddings '{"table": "cached_content"}'
+ */
+export const backfill_embeddings = internalAction({
+  args: {
+    table: v.union(v.literal("saved_content"), v.literal("cached_content")),
+  },
+  handler: async (ctx, args) => {
+    console.log(`Starting embedding backfill for ${args.table}...`);
+    await ctx.runAction(internal.migrations.backfill_embeddings_batch, {
+      table: args.table,
+      cursor: null,
+      processed: 0,
+    });
+  },
+});
+
+// Query to get records without embeddings
+export const get_records_without_embedding = internalQuery({
+  args: {
+    table: v.union(v.literal("saved_content"), v.literal("cached_content")),
+    cursor: v.union(v.string(), v.null()),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const query = args.table === "saved_content"
+      ? ctx.db.query("saved_content")
+      : ctx.db.query("cached_content");
+
+    const results = await query.paginate({
+      cursor: args.cursor,
+      numItems: args.limit,
+    });
+
+    // Filter to only records without embeddings
+    const recordsWithoutEmbedding = results.page.filter(
+      (r) => !r.embedding || r.embedding.length === 0
+    );
+
+    return {
+      records: recordsWithoutEmbedding,
+      continueCursor: results.continueCursor,
+      isDone: results.isDone,
+    };
+  },
+});
+
+// Mutation to update a record with its embedding
+export const update_record_embedding = internalMutation({
+  args: {
+    table: v.union(v.literal("saved_content"), v.literal("cached_content")),
+    id: v.union(v.id("saved_content"), v.id("cached_content")),
+    embedding: v.array(v.float64()),
+  },
+  handler: async (ctx, args) => {
+    if (args.table === "saved_content") {
+      await ctx.db.patch(args.id as Id<"saved_content">, { embedding: args.embedding });
+    } else {
+      await ctx.db.patch(args.id as Id<"cached_content">, { embedding: args.embedding });
+    }
+  },
+});
+
+// Process a batch of records, generate embeddings, and update
+export const backfill_embeddings_batch = internalAction({
+  args: {
+    table: v.union(v.literal("saved_content"), v.literal("cached_content")),
+    cursor: v.union(v.string(), v.null()),
+    processed: v.number(),
+  },
+  handler: async (ctx, args): Promise<{ done: boolean; processed: number }> => {
+    // Get batch of records without embeddings
+    const batch: {
+      records: Array<{ _id: Id<"saved_content"> | Id<"cached_content">; title: string; description?: string; content: string }>;
+      continueCursor: string;
+      isDone: boolean;
+    } = await ctx.runQuery(internal.migrations.get_records_without_embedding, {
+      table: args.table,
+      cursor: args.cursor,
+      limit: EMBEDDING_BATCH_SIZE,
+    });
+
+    // If no records need processing, check if we should continue or finish
+    if (batch.records.length === 0) {
+      if (batch.isDone) {
+        console.log(`Embedding backfill complete for ${args.table}! Processed ${args.processed} records.`);
+        return { done: true, processed: args.processed };
+      }
+      // Continue to next page (this batch had all records already embedded)
+      await ctx.scheduler.runAfter(0, internal.migrations.backfill_embeddings_batch, {
+        table: args.table,
+        cursor: batch.continueCursor,
+        processed: args.processed,
+      });
+      return { done: false, processed: args.processed };
+    }
+
+    // Generate embeddings for this batch (parallel within batch)
+    const embeddings = await ctx.runAction(internal.embeddings.generate_article_embeddings_batch, {
+      articles: batch.records.map((r: { title: string; description?: string; content: string }) => ({
+        title: r.title,
+        ...(r.description && { description: r.description }),
+        content: r.content,
+      })),
+    });
+
+    // Update each record with its embedding
+    for (let i = 0; i < batch.records.length; i++) {
+      await ctx.runMutation(internal.migrations.update_record_embedding, {
+        table: args.table,
+        id: batch.records[i]._id,
+        embedding: embeddings[i],
+      });
+    }
+
+    const newProcessed = args.processed + batch.records.length;
+    console.log(`Processed ${batch.records.length} records (total: ${newProcessed})...`);
+
+    // Schedule next batch
+    if (!batch.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.backfill_embeddings_batch, {
+        table: args.table,
+        cursor: batch.continueCursor,
+        processed: newProcessed,
+      });
+    } else {
+      console.log(`Embedding backfill complete for ${args.table}! Processed ${newProcessed} records.`);
+    }
+
+    return { done: batch.isDone, processed: newProcessed };
   },
 });
 

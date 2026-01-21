@@ -8,11 +8,13 @@
  * @module
  */
 
+import type * as article_search from "../article_search.js";
 import type * as auth from "../auth.js";
 import type * as auth_ResendOTPEmailVerification from "../auth/ResendOTPEmailVerification.js";
 import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordReset.js";
 import type * as cached_content from "../cached_content.js";
 import type * as chat from "../chat.js";
+import type * as embeddings from "../embeddings.js";
 import type * as http from "../http.js";
 import type * as knowledge_graph from "../knowledge_graph.js";
 import type * as migrations from "../migrations.js";
@@ -29,11 +31,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  article_search: typeof article_search;
   auth: typeof auth;
   "auth/ResendOTPEmailVerification": typeof auth_ResendOTPEmailVerification;
   "auth/ResendOTPPasswordReset": typeof auth_ResendOTPPasswordReset;
   cached_content: typeof cached_content;
   chat: typeof chat;
+  embeddings: typeof embeddings;
   http: typeof http;
   knowledge_graph: typeof knowledge_graph;
   migrations: typeof migrations;
