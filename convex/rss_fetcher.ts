@@ -1,4 +1,4 @@
-import { action, internalMutation } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 import { XMLParser } from "fast-xml-parser";
@@ -6,6 +6,18 @@ import { api, internal } from "./_generated/api";
 
 // Batch size for feed fetching to avoid memory issues
 const FEED_BATCH_SIZE = 50;
+
+// Query to get existing article links for a feed (for deduplication before embedding)
+export const get_existing_links = internalQuery({
+  args: { rss_feed_id: v.id("rss_feed") },
+  handler: async (ctx, args): Promise<Array<string>> => {
+    const articles = await ctx.db
+      .query("cached_content")
+      .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
+      .collect();
+    return articles.map((a) => a.link);
+  },
+});
 
 // Helper to chunk an array into batches
 function chunkArray<T>(array: Array<T>, size: number): Array<Array<T>> {
@@ -117,11 +129,38 @@ async function fetch_single_feed(
       (article) => article.link && article.title
     );
 
-    // Store articles in cached_content (deduplication handled in mutation)
+    // Get existing links to deduplicate before generating embeddings
+    const existingLinksArray = await ctx.runQuery(internal.rss_fetcher.get_existing_links, {
+      rss_feed_id: feed._id,
+    });
+    const existingLinks = new Set(existingLinksArray);
+
+    // Filter to only new articles
+    const new_articles = valid_articles.filter(
+      (article) => !existingLinks.has(article.link)
+    );
+
+    // Generate embeddings for new articles (batch call)
+    let embeddings: Array<Array<number>> = [];
+    if (new_articles.length > 0) {
+      embeddings = await ctx.runAction(internal.embeddings.generate_article_embeddings_batch, {
+        articles: new_articles.map((a) => ({
+          title: a.title,
+          description: a.description,
+          content: a.content,
+        })),
+      });
+    }
+
+    // Store articles in cached_content
     const result = await ctx.runMutation(internal.rss_fetcher.store_cached_articles, {
       user_id: feed.user_id,
       rss_feed_id: feed._id,
-      articles: valid_articles,
+      all_article_links: valid_articles.map((a) => a.link),
+      new_articles: new_articles.map((article, i) => ({
+        ...article,
+        embedding: embeddings[i],
+      })),
     });
 
     // Update feed status to active and reset failure count
@@ -179,7 +218,10 @@ export const store_cached_articles = internalMutation({
   args: {
     user_id: v.id("users"),
     rss_feed_id: v.id("rss_feed"),
-    articles: v.array(
+    // All current article links from the feed (for stale article cleanup)
+    all_article_links: v.array(v.string()),
+    // Only new articles (already deduplicated), with embeddings
+    new_articles: v.array(
       v.object({
         link: v.string(),
         title: v.string(),
@@ -187,11 +229,12 @@ export const store_cached_articles = internalMutation({
         content: v.string(),
         author: v.optional(v.string()),
         pub_date: v.optional(v.number()),
+        embedding: v.array(v.float64()),
       })
     ),
   },
   handler: async (ctx, args): Promise<{ inserted: number; deletedUnread: number }> => {
-    const currentLinks = new Set(args.articles.map((a) => a.link));
+    const currentLinks = new Set(args.all_article_links);
 
     // Get all existing cached articles for this feed to find stale ones
     const existingArticles = await ctx.db
@@ -199,7 +242,7 @@ export const store_cached_articles = internalMutation({
       .withIndex("by_rss_feed_id", (q) => q.eq("rss_feed_id", args.rss_feed_id))
       .collect();
 
-    // Count unread articles being deleted (for counter decrement)
+    // Delete stale articles (no longer in feed)
     let deletedUnreadCount = 0;
     for (const existing of existingArticles) {
       if (!currentLinks.has(existing.link)) {
@@ -210,31 +253,25 @@ export const store_cached_articles = internalMutation({
       }
     }
 
-    // Build set of existing links for dedup
-    const existingLinks = new Set(existingArticles.map((a) => a.link));
-
-    // Insert new articles with truncated content
-    let inserted_count = 0;
-    for (const article of args.articles) {
-      if (!existingLinks.has(article.link)) {
-        const truncatedContent = truncateContent(article.content);
-        await ctx.db.insert("cached_content", {
-          user_id: args.user_id,
-          rss_feed_id: args.rss_feed_id,
-          link: article.link,
-          title: article.title,
-          ...(article.description && { description: article.description }),
-          content: truncatedContent,
-          ...(article.author && { author: article.author }),
-          ...(article.pub_date && { pub_date: BigInt(article.pub_date) }),
-          is_read: false,
-        });
-        inserted_count++;
-      }
+    // Insert new articles with truncated content and embeddings
+    for (const article of args.new_articles) {
+      const truncatedContent = truncateContent(article.content);
+      await ctx.db.insert("cached_content", {
+        user_id: args.user_id,
+        rss_feed_id: args.rss_feed_id,
+        link: article.link,
+        title: article.title,
+        ...(article.description && { description: article.description }),
+        content: truncatedContent,
+        ...(article.author && { author: article.author }),
+        ...(article.pub_date && { pub_date: BigInt(article.pub_date) }),
+        is_read: false,
+        embedding: article.embedding,
+      });
     }
 
-    // Update feed unread_count (feed-level update is safe, each feed is updated by one mutation)
-    const netChange = inserted_count - deletedUnreadCount;
+    // Update feed unread_count
+    const netChange = args.new_articles.length - deletedUnreadCount;
     if (netChange !== 0) {
       const feed = await ctx.db.get(args.rss_feed_id);
       if (feed) {
@@ -245,7 +282,7 @@ export const store_cached_articles = internalMutation({
     }
 
     // Return counts so caller can batch the user update
-    return { inserted: inserted_count, deletedUnread: deletedUnreadCount };
+    return { inserted: args.new_articles.length, deletedUnread: deletedUnreadCount };
   },
 });
 
