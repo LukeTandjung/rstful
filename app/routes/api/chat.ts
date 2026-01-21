@@ -58,16 +58,97 @@ const EmbeddingLayer = Layer.provide(EmbeddingServiceLive, DedalusClientServiceL
 const convexUrl = process.env.VITE_CONVEX_URL;
 const convexClient = convexUrl ? new ConvexHttpClient(convexUrl) : null;
 
-async function fetchSavedArticles(userId: Id<"users">): Promise<string> {
+// Query knowledge graph for user interests via edges from user vertex
+async function getUserInterests(userId: Id<"users">): Promise<string | null> {
+  if (!convexClient) return null;
+
+  try {
+    // Find the "user" vertex
+    const embedding = await createEmbedding("user");
+    const vertices = await convexClient.action(api.knowledge_graph.search_vertices, {
+      user_id: userId,
+      embedding,
+      limit: 1,
+      threshold: 0.8,
+    });
+
+    if (!vertices || vertices.length === 0) return null;
+
+    // Get outgoing edges from user vertex (user → likes → topic)
+    const edges = await convexClient.query(api.knowledge_graph.get_edges_by_vertex, {
+      vertex_id: vertices[0]._id,
+      direction: "outgoing",
+    });
+
+    if (!edges || edges.length === 0) return null;
+
+    // Get the head vertices (topics/interests the user is connected to)
+    const headIds = edges.map((e) => e.head_vertex);
+    const topics = await convexClient.query(api.knowledge_graph.get_vertices_by_ids, {
+      vertex_ids: headIds,
+    });
+
+    const interests = topics
+      .filter((t): t is NonNullable<typeof t> => t !== null && !!t.content)
+      .map((t) => t.content)
+      .join(", ");
+
+    return interests || null;
+  } catch (error) {
+    console.error("Error fetching user interests:", error);
+    return null;
+  }
+}
+
+// Fetch full article content in parallel
+async function fetchArticlesContent(
+  articles: Array<{ link: string; title: string; _score: number }>
+): Promise<Array<{ title: string; link: string; content: string; score: number }>> {
+  const results = await Promise.allSettled(
+    articles.map(async (article) => {
+      const content = await fetchArticleContent(article.link);
+      const textContent = typeof content === "string"
+        ? content
+        : content.textContent || content.content || "";
+      return {
+        title: article.title,
+        link: article.link,
+        content: textContent,
+        score: article._score,
+      };
+    })
+  );
+
+  return results
+    .filter((r): r is PromiseFulfilledResult<{ title: string; link: string; content: string; score: number }> =>
+      r.status === "fulfilled"
+    )
+    .map((r) => r.value);
+}
+
+async function searchSavedArticles(userId: Id<"users">, query: string, personalize: boolean): Promise<string> {
   if (!convexClient) {
     return "";
   }
 
   try {
-    const savedContent = await convexClient.query(
-      api.saved_content.get_saved_content,
+    // Optionally enrich query with user interests from knowledge graph
+    let searchQuery = query;
+    if (personalize) {
+      const userInterests = await getUserInterests(userId);
+      if (userInterests) {
+        searchQuery = `${query} | User interests: ${userInterests}`;
+      }
+    }
+
+    const embedding = await createEmbedding(searchQuery);
+
+    const savedContent = await convexClient.action(
+      api.article_search.search_saved_articles,
       {
         user_id: userId,
+        embedding,
+        limit: 5,
       },
     );
 
@@ -75,45 +156,74 @@ async function fetchSavedArticles(userId: Id<"users">): Promise<string> {
       return "";
     }
 
-    return savedContent
+    // Fetch full content for each article
+    const articlesWithContent = await fetchArticlesContent(
+      savedContent.map((a: { title: string; link: string; _score: number }) => ({
+        title: a.title,
+        link: a.link,
+        _score: a._score,
+      }))
+    );
+
+    return articlesWithContent
       .map(
         (article) =>
-          `Title: ${article.title}\nContent: ${article.content}\nLink: ${article.link}`,
+          `Title: ${article.title}\nLink: ${article.link}\nRelevance: ${(article.score * 100).toFixed(1)}%\n\nContent:\n${article.content}`,
       )
       .join("\n\n---\n\n");
   } catch (error) {
-    console.error("Error fetching saved articles:", error);
+    console.error("Error searching saved articles:", error);
     return "";
   }
 }
 
-async function fetchCachedArticles(userId: Id<"users">): Promise<string> {
+async function searchCachedArticles(userId: Id<"users">, query: string, personalize: boolean): Promise<string> {
   if (!convexClient) {
     return "";
   }
 
   try {
-    // Fetch recent cached articles (limited to avoid too much context)
-    const cachedContent = await convexClient.query(
-      api.cached_content.get_cached_articles_paginated,
+    // Optionally enrich query with user interests from knowledge graph
+    let searchQuery = query;
+    if (personalize) {
+      const userInterests = await getUserInterests(userId);
+      if (userInterests) {
+        searchQuery = `${query} | User interests: ${userInterests}`;
+      }
+    }
+
+    const embedding = await createEmbedding(searchQuery);
+
+    const cachedContent = await convexClient.action(
+      api.article_search.search_cached_articles,
       {
         user_id: userId,
-        paginationOpts: { numItems: 50, cursor: null },
+        embedding,
+        limit: 5,
       },
     );
 
-    if (!cachedContent.page || cachedContent.page.length === 0) {
+    if (!cachedContent || cachedContent.length === 0) {
       return "";
     }
 
-    return cachedContent.page
+    // Fetch full content for each article
+    const articlesWithContent = await fetchArticlesContent(
+      cachedContent.map((a: { title: string; link: string; _score: number }) => ({
+        title: a.title,
+        link: a.link,
+        _score: a._score,
+      }))
+    );
+
+    return articlesWithContent
       .map(
         (article) =>
-          `Title: ${article.title}\nDescription: ${article.description ?? ""}\nLink: ${article.link}`,
+          `Title: ${article.title}\nLink: ${article.link}\nRelevance: ${(article.score * 100).toFixed(1)}%\n\nContent:\n${article.content}`,
       )
       .join("\n\n---\n\n");
   } catch (error) {
-    console.error("Error fetching cached articles:", error);
+    console.error("Error searching cached articles:", error);
     return "";
   }
 }
@@ -546,17 +656,26 @@ export async function action({ request }: ActionFunctionArgs) {
     ? createKnowledgeGraphTools(userId, createKnowledgeGraphDeps(userId))
     : null;
 
-  // Article access tools - wrap to bind userId
-  /** Fetches all articles the user has saved/starred. Returns formatted article list with titles, content, and links. */
-  async function getSavedArticles(): Promise<string> {
+  /**
+   * Searches saved articles by semantic similarity and fetches full content. Returns top-5 relevant articles.
+   * @param query - What to search for (topic, keywords, or description)
+   * @param personalize - If true, enriches search with user's interests. Use true for discovery, false for explicit topic searches.
+   */
+  async function getSavedArticles(query: string, personalize: boolean): Promise<string> {
     if (!userId) return "No user authenticated";
-    return fetchSavedArticles(userId);
+    if (!query || query.trim() === "") return "Query is required for searching saved articles";
+    return searchSavedArticles(userId, query, personalize);
   }
 
-  /** Fetches recent articles from the user's RSS feed subscriptions. Returns formatted article list with titles, descriptions, and links. */
-  async function getFeedArticles(): Promise<string> {
+  /**
+   * Searches RSS feed articles by semantic similarity and fetches full content. Returns top-5 relevant articles.
+   * @param query - What to search for (topic, keywords, or description)
+   * @param personalize - If true, enriches search with user's interests. Use true for discovery, false for explicit topic searches.
+   */
+  async function getFeedArticles(query: string, personalize: boolean): Promise<string> {
     if (!userId) return "No user authenticated";
-    return fetchCachedArticles(userId);
+    if (!query || query.trim() === "") return "Query is required for searching feed articles";
+    return searchCachedArticles(userId, query, personalize);
   }
 
   const encoder = new TextEncoder();
