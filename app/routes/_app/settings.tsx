@@ -195,16 +195,10 @@ export default function Settings() {
               <TokenProgress
                 label="Messages consumed"
                 current={tokenBalance?.messagesUsed ?? 0}
-                max={tokenBalance?.messagesLimit ?? 500}
+                max={tokenBalance?.messagesLimit ?? 1000}
                 period="this month"
               />
 
-              <TokenProgress
-                label="Deep Search consumed"
-                current={tokenBalance?.deepSearchUsed ?? 0}
-                max={tokenBalance?.deepSearchLimit ?? 30}
-                period="this month"
-              />
             </div>
           </div>
 
