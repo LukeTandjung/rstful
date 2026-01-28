@@ -9,7 +9,7 @@ export let appRuntime: ManagedRuntime.ManagedRuntime<
 
 export function createAppRuntime(
   convexAuthActions: ReturnType<typeof useAuthActions>,
-) {
+): void {
   const ConvexAuthActionsLive = Layer.succeed(ConvexAuthActions, {
     use_actions: convexAuthActions,
   });
@@ -17,8 +17,6 @@ export function createAppRuntime(
   appRuntime = ManagedRuntime.make(
     Layer.provide(AuthServiceLive, ConvexAuthActionsLive),
   );
-
-  return appRuntime;
 }
 
 export function disposeAppRuntime() {
