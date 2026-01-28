@@ -1,9 +1,26 @@
+import { Tool } from "@luketandjung/ariadne";
+import { Schema } from "effect";
 import type { Id, Doc } from "convex/_generated/dataModel";
 import type {
   KnowledgeGraphUpdate,
   KnowledgeGraphSubgraph,
-  ExtractedFact,
 } from "../agents.types";
+import {
+  KnowledgeGraphEntity,
+  KnowledgeGraphRelationship,
+} from "../agents.types";
+
+export const UpdateKnowledgeTool = Tool.make("UpdateKnowledge", {
+  description:
+    "Report discovered user preferences, interests, or thinking patterns revealed during conversation. Call this whenever you detect entities or relationships worth tracking about the user.",
+  parameters: {
+    entities: Schema.Array(KnowledgeGraphEntity),
+    relationships: Schema.Array(KnowledgeGraphRelationship),
+  },
+  success: Schema.String,
+  failure: Schema.String,
+  failureMode: "return" as const,
+});
 
 /**
  * Convert weight (0-1) to a confidence qualifier
@@ -45,31 +62,6 @@ export function verbalizeGraphForPrompt(
   label: string = "Known facts",
 ): string {
   const sentences = verbalizeGraph(subgraph);
-  if (sentences.length === 0) {
-    return "";
-  }
-  return `<${label.toLowerCase().replace(/\s+/g, "_")}>\n${sentences.join("\n")}\n</${label.toLowerCase().replace(/\s+/g, "_")}>`;
-}
-
-/**
- * Verbalize an array of ExtractedFacts into natural language sentences.
- * Used for presenting extracted facts to LLMs for comparison.
- */
-export function verbalizeFacts(facts: ReadonlyArray<ExtractedFact>): Array<string> {
-  return facts.map((fact) => {
-    const qualifier = weightToQualifier(fact.confidence);
-    return `[${fact.category}] ${qualifier}: ${fact.subject} ${fact.predicate} ${fact.object}`;
-  });
-}
-
-/**
- * Verbalize facts to a formatted string block for prompts
- */
-export function verbalizeFactsForPrompt(
-  facts: ReadonlyArray<ExtractedFact>,
-  label: string = "Profile",
-): string {
-  const sentences = verbalizeFacts(facts);
   if (sentences.length === 0) {
     return "";
   }

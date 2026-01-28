@@ -16,7 +16,8 @@ interface ChatInterfaceProps {
   placeholder?: string;
   apiEndpoint?: string;
   apiPayloadExtra?: Record<string, unknown>;
-  externalLoading?: boolean;
+  externalStreamStatus?: StreamStatus;
+  externalStreamingContent?: string;
 }
 
 export function ChatInterface({
@@ -25,7 +26,8 @@ export function ChatInterface({
   placeholder = "Type your message...",
   apiEndpoint = "/api/chat",
   apiPayloadExtra = {},
-  externalLoading = false,
+  externalStreamStatus,
+  externalStreamingContent,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
@@ -150,11 +152,14 @@ export function ChatInterface({
     }
   };
 
-  const isStreaming = streamStatus !== "idle" || externalLoading;
+  // Merge internal and external streaming state
+  // Prefer internal state when actively streaming, otherwise use external
+  const effectiveStreamStatus = streamStatus !== "idle" ? streamStatus : (externalStreamStatus ?? "idle");
+  const effectiveStreamingContent = streamingContent || externalStreamingContent || "";
+  const isStreaming = effectiveStreamStatus !== "idle";
 
-  const getStatusText = () => {
-    if (externalLoading) return "Generating summary...";
-    switch (streamStatus) {
+  const getStatusText = (status: StreamStatus): string => {
+    switch (status) {
       case "thinking":
         return "Thinking...";
       case "searching":
@@ -219,48 +224,41 @@ export function ChatInterface({
               </div>
             ))}
 
-            {/* Streaming content bubble */}
-            {streamingContent &&
-              (() => {
-                const lastAssistantMsg = messages
-                  ?.filter((m) => m.role === "assistant")
-                  .slice(-1)[0];
-                const alreadySaved =
-                  lastAssistantMsg?.content === streamingContent.trim();
-                return !alreadySaved ? (
-                  <div className="flex w-full justify-start">
-                    <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
-                      <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
-                        <ReactMarkdown
-                          components={{
-                            a: ({ href, children }) => (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-link underline hover:text-link-hover"
-                              >
-                                {children}
-                              </a>
-                            ),
-                          }}
-                        >
-                          {streamingContent}
-                        </ReactMarkdown>
-                      </div>
+            {/* Streaming area - always visible during streaming */}
+            {isStreaming && (
+              <div className="flex w-full justify-start">
+                <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
+                  {!effectiveStreamingContent && (
+                    <div className="flex items-center gap-2 text-text-alt">
+                      <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm">
+                        {getStatusText(effectiveStreamStatus)}
+                      </span>
                     </div>
-                  </div>
-                ) : null;
-              })()}
-
-            {/* Loading indicator */}
-            {isStreaming &&
-              (externalLoading || streamStatus === "searching" || !streamingContent) && (
-                <div className="flex items-center gap-2 text-text-alt py-2">
-                  <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm">{getStatusText()}</span>
+                  )}
+                  {effectiveStreamingContent && (
+                    <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-link underline hover:text-link-hover"
+                            >
+                              {children}
+                            </a>
+                          ),
+                        }}
+                      >
+                        {effectiveStreamingContent}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
           </div>
         </ScrollArea.Viewport>
       </ScrollArea.Root>

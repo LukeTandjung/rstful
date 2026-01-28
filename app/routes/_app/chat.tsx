@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import type { Route } from "./+types/chat";
 import { ScrollArea } from "@base-ui-components/react/scroll-area";
 import {
@@ -8,42 +8,13 @@ import {
   PlusIcon,
 } from "@heroicons/react/16/solid";
 import { ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
-import { SectionCard, ConversationListItem, ChatModeMenu } from "components";
-import type { ChatMode } from "components";
+import { SectionCard, ConversationListItem } from "components";
 import { Button } from "@base-ui-components/react/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useHighlighter } from "services/highlighter";
 import ReactMarkdown from "react-markdown";
-
-// localStorage helpers for persisting search state across page switches
-const SEARCH_STATE_KEY = "deep_search_state";
-
-interface SearchState {
-  chatId: string;
-  status: "thinking" | "searching";
-  startedAt: number;
-  messageCountAtStart: number;
-}
-
-const saveSearchState = (state: SearchState) => {
-  localStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(state));
-};
-
-const getSearchState = (): SearchState | null => {
-  const stored = localStorage.getItem(SEARCH_STATE_KEY);
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return null;
-  }
-};
-
-const clearSearchState = () => {
-  localStorage.removeItem(SEARCH_STATE_KEY);
-};
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -59,11 +30,11 @@ type StreamStatus = "idle" | "thinking" | "searching" | "generating";
 
 export default function Chat() {
   const [input, setInput] = useState("");
-  const [chatMode, setChatMode] = useState<ChatMode>("regular");
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("idle");
   const [streamingContent, setStreamingContent] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamingChatIdRef = useRef<Id<"group_chat"> | null>(null);
 
   const handleCopy = async (content: string, id: string) => {
     await navigator.clipboard.writeText(content);
@@ -84,7 +55,6 @@ export default function Chat() {
   const deleteConversation = useMutation(api.chat.delete_conversation);
   const sendMessageMutation = useMutation(api.chat.send_message);
   const deductMessageToken = useMutation(api.tokens.deductMessageToken);
-  const deductDeepSearchToken = useMutation(api.tokens.deductDeepSearchToken);
 
   // Single source of truth: Convex database
   const messages = useQuery(
@@ -93,38 +63,22 @@ export default function Chat() {
   );
 
   const selectedConversation = conversations?.find((c) => c._id === chatId);
-  const conversationMode = selectedConversation?.mode;
-  const effectiveMode: ChatMode =
-    conversationMode === "regular" || conversationMode === "deep_search"
-      ? conversationMode
-      : chatMode;
-
-  const handleModeChange = (newMode: ChatMode) => {
-    if (chatId) return;
-    setChatMode(newMode);
-  };
 
   const handleNewConversation = () => {
     setChatId(null);
-    setChatMode("regular");
   };
 
   const handleSelectConversation = (id: Id<"group_chat">) => {
     setChatId(id);
-    const conversation = conversations?.find((c) => c._id === id);
-    if (conversation && conversation.mode !== "user") {
-      setChatMode(conversation.mode);
-    }
   };
 
   const handleDeleteConversation = async (id: Id<"group_chat">) => {
     await deleteConversation({ group_chat_id: id });
     if (chatId === id) {
       setChatId(null);
-      // Reset streaming state when deleting current chat
       setStreamStatus("idle");
       setStreamingContent("");
-      clearSearchState();
+      streamingChatIdRef.current = null;
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
     }
@@ -146,7 +100,7 @@ export default function Chat() {
         currentChatId = await createConversation({
           user_id: viewer._id,
           name: "...",
-          mode: chatMode,
+          mode: "regular",
         });
         setChatId(currentChatId);
       }
@@ -160,18 +114,9 @@ export default function Chat() {
       });
 
       // Start streaming from API
+      streamingChatIdRef.current = currentChatId;
       setStreamStatus("thinking");
       abortControllerRef.current = new AbortController();
-
-      // Save search state to localStorage for deep search (persists across page switches)
-      if (effectiveMode === "deep_search") {
-        saveSearchState({
-          chatId: currentChatId,
-          status: "thinking",
-          startedAt: Date.now(),
-          messageCountAtStart: (messages?.length || 0) + 1, // +1 for the user message we just sent
-        });
-      }
 
       // Build full conversation history for the API
       const existingMessages = (messages || []).map((m) => ({
@@ -190,7 +135,6 @@ export default function Chat() {
           messages: fullMessages,
           user_id: viewer._id,
           chat_id: currentChatId,
-          mode: effectiveMode,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -223,18 +167,7 @@ export default function Chat() {
                 const event = JSON.parse(data);
 
                 if (event.type === "status") {
-                  const newStatus = event.status as StreamStatus;
-                  setStreamStatus(newStatus);
-                  // Update localStorage when status changes to searching
-                  if (
-                    newStatus === "searching" &&
-                    effectiveMode === "deep_search"
-                  ) {
-                    const savedState = getSearchState();
-                    if (savedState) {
-                      saveSearchState({ ...savedState, status: "searching" });
-                    }
-                  }
+                  setStreamStatus(event.status as StreamStatus);
                 } else if (event.type === "text" && event.content) {
                   setStreamingContent((prev) => prev + event.content);
                 }
@@ -256,66 +189,21 @@ export default function Chat() {
         setInput(userInput);
       }
     } finally {
+      streamingChatIdRef.current = null;
       setStreamStatus("idle");
       setStreamingContent("");
-      clearSearchState();
       abortControllerRef.current = null;
 
       // Deduct token only on successful completion
       if (success) {
         try {
-          if (effectiveMode === "deep_search") {
-            await deductDeepSearchToken();
-          } else {
-            await deductMessageToken();
-          }
+          await deductMessageToken();
         } catch (error) {
           console.error("Failed to deduct token:", error);
         }
       }
     }
   };
-
-  // Restore search state from localStorage on mount/chat change
-  // Only runs when NOT actively streaming (restoration logic, not live updates)
-  useEffect(() => {
-    // Skip if we're actively streaming - don't interfere with live state
-    if (abortControllerRef.current) {
-      return;
-    }
-
-    const savedState = getSearchState();
-
-    // If there's a saved search for a different chat, don't show spinner here
-    if (savedState && savedState.chatId !== chatId) {
-      setStreamStatus("idle");
-      return;
-    }
-
-    if (savedState && savedState.chatId === chatId) {
-      // Timeout after 10 minutes - search probably failed
-      const tenMinutes = 10 * 60 * 1000;
-      if (Date.now() - savedState.startedAt > tenMinutes) {
-        clearSearchState();
-        setStreamStatus("idle");
-        return;
-      }
-
-      // Check if search is still in progress (no new messages since start)
-      // Account for acknowledgment message (+1) in deep search
-      const expectedMessagesBeforeResult = savedState.messageCountAtStart + 1;
-      const currentMessageCount = messages?.length || 0;
-      if (currentMessageCount <= expectedMessagesBeforeResult) {
-        // Search still in progress - restore the spinner
-        setStreamStatus("searching");
-      } else {
-        // Final results arrived - search completed, clear state
-        clearSearchState();
-        setStreamStatus("idle");
-      }
-    }
-  }, [chatId, messages?.length]);
-
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -324,20 +212,12 @@ export default function Chat() {
     }
   };
 
-  const placeholderText =
-    effectiveMode === "deep_search"
-      ? "Describe the type of people you want to find online..."
-      : "Type your message...";
-
-  const cardDescription =
-    effectiveMode === "deep_search"
-      ? "Find interesting people online"
-      : "Chat with an AI assistant about your RSS feeds";
-
   const isStreaming = streamStatus !== "idle";
+  const isStreamingThisChat =
+    isStreaming && chatId === streamingChatIdRef.current;
 
-  const getStatusText = () => {
-    switch (streamStatus) {
+  const getStatusText = (status: StreamStatus): string => {
+    switch (status) {
       case "thinking":
         return "Thinking...";
       case "searching":
@@ -352,16 +232,16 @@ export default function Chat() {
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
       {/* Side Panel */}
-      <div className="flex flex-col gap-4 md:w-64 shrink-0">
+      <div className="flex flex-col gap-4 md:w-64 shrink-0 md:min-h-0">
         <SectionCard
           icon={<ClockIcon className="size-7" />}
           title="History"
           description="Recent conversations"
-          className="grow"
+          className="grow min-h-0 overflow-hidden"
         >
-          <div className="flex flex-col gap-2 grow">
-            <ScrollArea.Root className="grow min-h-0">
-              <ScrollArea.Viewport className="grow min-h-0">
+          <div className="flex flex-col gap-2 grow min-h-0">
+            <ScrollArea.Root className="min-h-0 w-full max-h-64 md:max-h-none md:grow">
+              <ScrollArea.Viewport className="h-full w-full">
                 <div className="flex flex-col gap-1">
                   {conversations
                     ?.filter((c) => c.mode !== "user")
@@ -410,10 +290,9 @@ export default function Chat() {
         title={
           selectedConversation?.name === "..."
             ? "Generating name..."
-            : (selectedConversation?.name ??
-              (effectiveMode === "deep_search" ? "Deep Search" : "AI Chat"))
+            : (selectedConversation?.name ?? "AI Chat")
         }
-        description={cardDescription}
+        description="Chat with an AI assistant about your RSS feeds"
         className="md:min-h-0 md:grow"
       >
         <div className="flex flex-col grow min-h-0 w-full">
@@ -468,48 +347,41 @@ export default function Chat() {
                   </div>
                 ))}
 
-                {/* Streaming content bubble - only show if not already saved to DB */}
-                {streamingContent &&
-                  (() => {
-                    const lastAssistantMsg = messages
-                      ?.filter((m) => m.role === "assistant")
-                      .slice(-1)[0];
-                    const alreadySaved =
-                      lastAssistantMsg?.content === streamingContent.trim();
-                    return !alreadySaved ? (
-                      <div className="flex w-full justify-start">
-                        <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
-                          <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
-                            <ReactMarkdown
-                              components={{
-                                a: ({ href, children }) => (
-                                  <a
-                                    href={href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-link underline hover:text-link-hover"
-                                  >
-                                    {children}
-                                  </a>
-                                ),
-                              }}
-                            >
-                              {streamingContent}
-                            </ReactMarkdown>
-                          </div>
+                {/* Streaming area - always visible during streaming */}
+                {isStreamingThisChat && (
+                  <div className="flex w-full justify-start">
+                    <div className="max-w-[80%] overflow-hidden rounded-lg p-4 bg-background text-text">
+                      {!streamingContent && (
+                        <div className="flex items-center gap-2 text-text-alt">
+                          <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
+                          <span className="text-sm">
+                            {getStatusText(streamStatus)}
+                          </span>
                         </div>
-                      </div>
-                    ) : null;
-                  })()}
-
-                {/* Loading indicator - show during searching phase, or when waiting for content */}
-                {isStreaming &&
-                  (streamStatus === "searching" || !streamingContent) && (
-                    <div className="flex items-center gap-2 text-text-alt py-2">
-                      <div className="size-4 border-2 border-border-focus border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm">{getStatusText()}</span>
+                      )}
+                      {streamingContent && (
+                        <div className="prose max-w-none text-text prose-headings:text-text prose-strong:text-text prose-code:text-text prose-code:bg-background-alt prose-code:px-1 prose-code:rounded prose-pre:overflow-x-auto prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+                          <ReactMarkdown
+                            components={{
+                              a: ({ href, children }) => (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-link underline hover:text-link-hover"
+                                >
+                                  {children}
+                                </a>
+                              ),
+                            }}
+                          >
+                            {streamingContent}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                )}
               </div>
             </ScrollArea.Viewport>
           </ScrollArea.Root>
@@ -520,17 +392,12 @@ export default function Chat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={placeholderText}
+                placeholder="Type your message..."
                 className="w-full bg-transparent text-base leading-7 text-text placeholder:text-text-alt resize-none outline-none"
                 rows={2}
                 disabled={isStreaming}
               />
-              <div className="flex flex-row w-full justify-between">
-                <ChatModeMenu
-                  mode={effectiveMode}
-                  onModeChange={handleModeChange}
-                  disabled={!!chatId || isStreaming}
-                />
+              <div className="flex flex-row w-full justify-end">
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isStreaming}

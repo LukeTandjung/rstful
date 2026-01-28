@@ -1,369 +1,39 @@
 import type { ActionFunctionArgs } from "react-router";
-import Dedalus, { DedalusRunner } from "dedalus-labs";
-import { Layer, Effect, pipe, Schema, JSONSchema } from "effect";
+import {
+  LanguageModel,
+  AgentRunner,
+  Prompt,
+  McpRegistry,
+  EmbeddingModel,
+} from "@luketandjung/ariadne";
+import { Effect, Layer, Stream } from "effect";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import {
-  AgentRunner,
-  DedalusRunnerService,
-  DeepSearchOrchestrator,
-  AgentRunnerLive,
-  DeepSearchOrchestratorLive,
-  JudgeAgentLive,
-  ParserAgentLive,
-  OrchestratorAgentLive,
-  type DeepSearchConfig,
-  type ExtractedFact,
-  type KnowledgeGraphSubgraph,
-  fetchArticleContent,
+  DedalusClientLive,
+  Gpt5,
+  Gpt4oMini,
+  TextEmbedding,
+  ChatToolkit,
+  createChatToolkitLayer,
   createKnowledgeGraphTools,
   type KnowledgeGraphToolDependencies,
-  ArticleChatResponse,
   ARTICLE_CHAT_PROMPT,
-  wrapJsonSchema,
 } from "services/agents";
-import {
-  EmbeddingService,
-  EmbeddingServiceLive,
-  DedalusClientServiceLive,
-} from "services/embeddings";
-
-const client = new Dedalus();
-const dedalusRunner = new DedalusRunner(client);
-
-// Agent layers
-const DedalusRunnerServiceLive = Layer.succeed(DedalusRunnerService, {
-  runner: dedalusRunner,
-});
-const AgentLayer = Layer.provide(AgentRunnerLive, DedalusRunnerServiceLive);
-const ParserLayer = Layer.provide(ParserAgentLive, AgentLayer);
-const OrchestratorLayer = Layer.provide(OrchestratorAgentLive, AgentLayer);
-const JudgeLayer = Layer.provide(JudgeAgentLive, AgentLayer);
-const DeepSearchLayer = Layer.provide(
-  DeepSearchOrchestratorLive,
-  pipe(ParserLayer, Layer.provideMerge(OrchestratorLayer), Layer.provideMerge(JudgeLayer)),
-);
-const MainLayer = pipe(
-  AgentLayer,
-  Layer.provideMerge(ParserLayer),
-  Layer.provideMerge(OrchestratorLayer),
-  Layer.provideMerge(JudgeLayer),
-  Layer.provideMerge(DeepSearchLayer),
-);
-
-// Embedding layer
-const EmbeddingLayer = Layer.provide(EmbeddingServiceLive, DedalusClientServiceLive);
 
 const convexUrl = process.env.VITE_CONVEX_URL;
 const convexClient = convexUrl ? new ConvexHttpClient(convexUrl) : null;
 
-// Query knowledge graph for user interests via edges from user vertex
-async function getUserInterests(userId: Id<"users">): Promise<string | null> {
-  if (!convexClient) return null;
-
-  try {
-    // Find the "user" vertex
-    const embedding = await createEmbedding("user");
-    const vertices = await convexClient.action(api.knowledge_graph.search_vertices, {
-      user_id: userId,
-      embedding,
-      limit: 1,
-      threshold: 0.8,
-    });
-
-    if (!vertices || vertices.length === 0) return null;
-
-    // Get outgoing edges from user vertex (user → likes → topic)
-    const edges = await convexClient.query(api.knowledge_graph.get_edges_by_vertex, {
-      vertex_id: vertices[0]._id,
-      direction: "outgoing",
-    });
-
-    if (!edges || edges.length === 0) return null;
-
-    // Get the head vertices (topics/interests the user is connected to)
-    const headIds = edges.map((e) => e.head_vertex);
-    const topics = await convexClient.query(api.knowledge_graph.get_vertices_by_ids, {
-      vertex_ids: headIds,
-    });
-
-    const interests = topics
-      .filter((t): t is NonNullable<typeof t> => t !== null && !!t.content)
-      .map((t) => t.content)
-      .join(", ");
-
-    return interests || null;
-  } catch (error) {
-    console.error("Error fetching user interests:", error);
-    return null;
-  }
-}
-
-// Fetch full article content in parallel
-async function fetchArticlesContent(
-  articles: Array<{ link: string; title: string; _score: number }>
-): Promise<Array<{ title: string; link: string; content: string; score: number }>> {
-  const results = await Promise.allSettled(
-    articles.map(async (article) => {
-      const content = await fetchArticleContent(article.link);
-      const textContent = typeof content === "string"
-        ? content
-        : content.textContent || content.content || "";
-      return {
-        title: article.title,
-        link: article.link,
-        content: textContent,
-        score: article._score,
-      };
-    })
-  );
-
-  return results
-    .filter((r): r is PromiseFulfilledResult<{ title: string; link: string; content: string; score: number }> =>
-      r.status === "fulfilled"
-    )
-    .map((r) => r.value);
-}
-
-async function searchSavedArticles(userId: Id<"users">, query: string, personalize: boolean): Promise<string> {
-  if (!convexClient) {
-    return "";
-  }
-
-  try {
-    // Optionally enrich query with user interests from knowledge graph
-    let searchQuery = query;
-    if (personalize) {
-      const userInterests = await getUserInterests(userId);
-      if (userInterests) {
-        searchQuery = `${query} | User interests: ${userInterests}`;
-      }
-    }
-
-    const embedding = await createEmbedding(searchQuery);
-
-    const savedContent = await convexClient.action(
-      api.article_search.search_saved_articles,
-      {
-        user_id: userId,
-        embedding,
-        limit: 5,
-      },
-    );
-
-    if (!savedContent || savedContent.length === 0) {
-      return "";
-    }
-
-    // Fetch full content for each article
-    const articlesWithContent = await fetchArticlesContent(
-      savedContent.map((a: { title: string; link: string; _score: number }) => ({
-        title: a.title,
-        link: a.link,
-        _score: a._score,
-      }))
-    );
-
-    return articlesWithContent
-      .map(
-        (article) =>
-          `Title: ${article.title}\nLink: ${article.link}\nRelevance: ${(article.score * 100).toFixed(1)}%\n\nContent:\n${article.content}`,
-      )
-      .join("\n\n---\n\n");
-  } catch (error) {
-    console.error("Error searching saved articles:", error);
-    return "";
-  }
-}
-
-async function searchCachedArticles(userId: Id<"users">, query: string, personalize: boolean): Promise<string> {
-  if (!convexClient) {
-    return "";
-  }
-
-  try {
-    // Optionally enrich query with user interests from knowledge graph
-    let searchQuery = query;
-    if (personalize) {
-      const userInterests = await getUserInterests(userId);
-      if (userInterests) {
-        searchQuery = `${query} | User interests: ${userInterests}`;
-      }
-    }
-
-    const embedding = await createEmbedding(searchQuery);
-
-    const cachedContent = await convexClient.action(
-      api.article_search.search_cached_articles,
-      {
-        user_id: userId,
-        embedding,
-        limit: 5,
-      },
-    );
-
-    if (!cachedContent || cachedContent.length === 0) {
-      return "";
-    }
-
-    // Fetch full content for each article
-    const articlesWithContent = await fetchArticlesContent(
-      cachedContent.map((a: { title: string; link: string; _score: number }) => ({
-        title: a.title,
-        link: a.link,
-        _score: a._score,
-      }))
-    );
-
-    return articlesWithContent
-      .map(
-        (article) =>
-          `Title: ${article.title}\nLink: ${article.link}\nRelevance: ${(article.score * 100).toFixed(1)}%\n\nContent:\n${article.content}`,
-      )
-      .join("\n\n---\n\n");
-  } catch (error) {
-    console.error("Error searching cached articles:", error);
-    return "";
-  }
-}
-
-// Convert knowledge graph subgraph to ExtractedFact array for deep search
-function extractFactsFromKnowledge(
-  subgraph: KnowledgeGraphSubgraph,
-): Array<ExtractedFact> {
-  if (subgraph.edges.length === 0) {
-    return [];
-  }
-
-  // Convert edges to structured facts (edges have the relationship info)
-  return subgraph.edges.map((e) => ({
-    subject: e.from,
-    predicate: e.relationship,
-    object: e.to,
-    category: "general",
-    confidence: 0.8, // Default confidence for cached facts
-  }));
-}
-
-/**
- * Convert structured ExtractedFacts to knowledge graph format.
- * Facts now have subject/predicate/object fields directly from LLM output.
- */
-function factsToKnowledgeUpdate(facts: ReadonlyArray<ExtractedFact>): {
-  entities: Array<{
-    content: string;
-    meta_data: { weight: number; last_updated: number; entity_type?: string };
-  }>;
-  relationships: Array<{
-    tail_vertex: string;
-    head_vertex: string;
-    content: string;
-    meta_data: { weight: number; last_updated: number; relationship_type?: string };
-  }>;
-} {
-  const now = Date.now();
-  const entities: Array<{
-    content: string;
-    meta_data: { weight: number; last_updated: number; entity_type?: string };
-  }> = [];
-  const relationships: Array<{
-    tail_vertex: string;
-    head_vertex: string;
-    content: string;
-    meta_data: { weight: number; last_updated: number; relationship_type?: string };
-  }> = [];
-
-  // Track unique entities to avoid duplicates
-  const seenEntities = new Set<string>();
-
-  for (const fact of facts) {
-    // Add subject entity if not seen
-    if (!seenEntities.has(fact.subject)) {
-      seenEntities.add(fact.subject);
-      const subjectMeta: { weight: number; last_updated: number; entity_type?: string } = {
-        weight: 1.0,
-        last_updated: now,
-      };
-      if (fact.subject === "user") {
-        subjectMeta.entity_type = "person";
-      }
-      entities.push({
-        content: fact.subject,
-        meta_data: subjectMeta,
-      });
-    }
-
-    // Add object entity if not seen
-    if (!seenEntities.has(fact.object)) {
-      seenEntities.add(fact.object);
-      entities.push({
-        content: fact.object,
-        meta_data: { weight: fact.confidence, last_updated: now, entity_type: fact.category },
-      });
-    }
-
-    // Add relationship
-    relationships.push({
-      tail_vertex: fact.subject,
-      head_vertex: fact.object,
-      content: fact.predicate,
-      meta_data: { weight: fact.confidence, last_updated: now, relationship_type: fact.category },
-    });
-  }
-
-  return { entities, relationships };
-}
-
-async function saveAssistantMessage(chatId: Id<"group_chat">, userId: Id<"users">, content: string) {
-  if (!convexClient) return;
-
-  try {
-    await convexClient.mutation(api.chat.send_message, {
-      group_chat_id: chatId,
-      sender_id: userId,
-      content,
-      role: "assistant",
-    });
-  } catch (error) {
-    console.error("Error saving assistant message:", error);
-  }
-}
-
-async function generateConversationName(chatId: Id<"group_chat">, userMessage: string) {
-  if (!convexClient) return;
-
-  try {
-    const agentRunner = Effect.runSync(Effect.provide(AgentRunner, MainLayer));
-
-    const result = await Effect.runPromise(
-      agentRunner.run({
-        input: userMessage,
-        model: "openai/gpt-4o-mini",
-        systemPrompt: "Generate a short, concise title (3-5 words max) for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation.",
-      })
-    );
-
-    const name = result.finalOutput.trim().slice(0, 50);
-    if (name) {
-      await convexClient.mutation(api.chat.update_conversation_name, {
-        group_chat_id: chatId,
-        name,
-      });
-    }
-  } catch (error) {
-    console.error("Error generating conversation name:", error);
-  }
-}
-
 async function createEmbedding(text: string): Promise<Array<number>> {
-  const result = await Effect.runPromise(
-    EmbeddingService.pipe(
-      Effect.flatMap((svc) => svc.createEmbedding(text)),
-      Effect.provide(EmbeddingLayer),
+  return await Effect.runPromise(
+    Effect.gen(function* () {
+      const model = yield* EmbeddingModel.EmbeddingModel;
+      return yield* model.embed(text);
+    }).pipe(
+      Effect.provide(TextEmbedding.pipe(Layer.provide(DedalusClientLive))),
     ),
   );
-  return result.embedding;
 }
 
 function createKnowledgeGraphDeps(
@@ -393,16 +63,66 @@ function createKnowledgeGraphDeps(
   };
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+async function saveAssistantMessage(
+  chatId: Id<"group_chat">,
+  userId: Id<"users">,
+  content: string,
+) {
+  if (!convexClient) return;
+
+  try {
+    await convexClient.mutation(api.chat.send_message, {
+      group_chat_id: chatId,
+      sender_id: userId,
+      content,
+      role: "assistant",
+    });
+  } catch (error) {
+    console.error("Error saving assistant message:", error);
+  }
+}
+
+async function generateConversationName(
+  chatId: Id<"group_chat">,
+  userMessage: string,
+) {
+  if (!convexClient) return;
+
+  try {
+    const result = await Effect.runPromise(
+      LanguageModel.generateText({
+        prompt: Prompt.make([
+          {
+            role: "system",
+            content:
+              "Generate a short, concise title (3-5 words max) for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation.",
+          },
+          {
+            role: "user",
+            content: [{ type: "text", text: userMessage }],
+          },
+        ]),
+      }).pipe(
+        Effect.provide(Gpt4oMini.pipe(Layer.provide(DedalusClientLive))),
+      ),
+    );
+
+    const name = result.text.trim().slice(0, 50);
+    if (name) {
+      await convexClient.mutation(api.chat.update_conversation_name, {
+        group_chat_id: chatId,
+        name,
+      });
+    }
+  } catch (error) {
+    console.error("Error generating conversation name:", error);
+  }
+}
+
+export async function handleChatStream(request: Request): Promise<Response> {
   const body = await request.json();
   const userId = body.user_id as Id<"users"> | undefined;
   const chatId = body.chat_id as Id<"group_chat"> | undefined;
-  const mode = body.mode as "regular" | "deep_search" | undefined;
-
-  const agentRunner = Effect.runSync(Effect.provide(AgentRunner, MainLayer));
-  const deepSearchOrchestrator = Effect.runSync(
-    Effect.provide(DeepSearchOrchestrator, MainLayer),
-  );
 
   // Fetch ALL messages from Convex (frontend already saved the new user message)
   let allMessages: Array<{ role: "user" | "assistant"; content: string }> = [];
@@ -420,222 +140,62 @@ export async function action({ request }: ActionFunctionArgs) {
     }
   }
 
-  // The last message is the new user input (frontend saved it before calling API)
   const lastMessage = allMessages[allMessages.length - 1];
   const input = lastMessage?.content || "";
   const isNewConversation = allMessages.length === 1;
-
-  // Debug logging
-  console.log("=== Chat API Request ===");
-  console.log("Fetched messages from Convex:", allMessages.length);
-  console.log("Last message (user input):", input.substring(0, 100));
-  console.log("Is new conversation:", isNewConversation);
 
   // Generate conversation name for new conversations (fire and forget)
   if (isNewConversation && chatId && input) {
     generateConversationName(chatId, input);
   }
 
-  let mcpServers: Array<string> = [];
-
-  if (mode === "deep_search") {
-    const config: DeepSearchConfig = {
-      scoreThreshold: 80,
-      maxSearchLoops: 2,
-      usersPerSearch: 3,
-    };
-
-    // Create knowledge graph tools for user context
-    const knowledgeTools = userId && convexClient
+  // Create knowledge graph tools if user is authenticated
+  const knowledgeTools =
+    userId && convexClient
       ? createKnowledgeGraphTools(userId, createKnowledgeGraphDeps(userId))
       : null;
 
-    // Query knowledge graph for existing user facts
-    let cachedFacts: Array<ExtractedFact> | undefined;
-    if (knowledgeTools) {
-      try {
-        const subgraph = await knowledgeTools.query_knowledge_graph(
-          "reasoning style values preferences thinking patterns interests",
-        );
-        const facts = extractFactsFromKnowledge(subgraph);
-        if (facts.length > 0) {
-          cachedFacts = facts;
-          console.log(`Found ${facts.length} cached user facts from knowledge graph`);
-        }
-      } catch (error) {
-        console.error("Error querying knowledge graph for facts:", error);
+  // Query knowledge graph for user context
+  let knowledgeContext = "";
+  if (knowledgeTools) {
+    try {
+      const graphResult = await knowledgeTools.query_knowledge_graph(input);
+      if (graphResult.vertices.length > 0) {
+        const vertexInfo = graphResult.vertices
+          .map((v) => `${v.content} (confidence: ${v.weight})`)
+          .join("\n");
+        const edgeInfo = graphResult.edges
+          .map((e) => `${e.from} --[${e.relationship}]--> ${e.to}`)
+          .join("\n");
+        knowledgeContext = `\n\n<user_knowledge>\nKnown about user:\n${vertexInfo}\n\nRelationships:\n${edgeInfo}\n</user_knowledge>`;
       }
-    }
-
-    const encoder = new TextEncoder();
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const emit = (event: { type: string; content?: string; status?: string }) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        };
-
-        const emitStatus = (status: string) => {
-          emit({ type: "status", status });
-        };
-
-        const emitText = (content: string) => {
-          emit({ type: "text", content });
-        };
-
-        const streamText = (text: string) => {
-          emitText(text);
-        };
-
-        try {
-          // Start with "thinking" status while parsing
-          emitStatus("thinking");
-
-          // For deep search, pass all messages except the last one (current input) as history
-          const conversationHistory = allMessages.slice(0, -1);
-
-          const searchResult = await Effect.runPromise(
-            deepSearchOrchestrator.execute(
-              input,
-              config,
-              conversationHistory,
-              async (acknowledgment) => {
-                // Switch to "searching" status when orchestrator starts
-                emitStatus("searching");
-                streamText(acknowledgment);
-                // Save acknowledgment as assistant message so it persists if user leaves
-                if (chatId && userId) {
-                  await saveAssistantMessage(chatId, userId, acknowledgment);
-                }
-              },
-              cachedFacts,
-            ),
-          );
-
-          console.log("DeepSearch result:", searchResult.status);
-
-          let responseText: string;
-
-          if (searchResult.status === "needs_clarification") {
-            const questionsFormatted = searchResult.questions
-              .map((q, i) => `${i + 1}. ${q}`)
-              .join("\n\n");
-            responseText = `To find creators who think like you, I need to understand your perspective better. Please answer these questions:\n\n${questionsFormatted}\n\n(Just reply with your answers and I'll start the search!)`;
-          } else if (searchResult.status === "impossible_criteria") {
-            responseText = searchResult.suggestion;
-          } else {
-            // Save user facts to knowledge graph with proper entity resolution
-            if (knowledgeTools && searchResult.userFacts.length > 0) {
-              const knowledgeUpdate = factsToKnowledgeUpdate(searchResult.userFacts);
-              knowledgeTools
-                .update_knowledge_graph(knowledgeUpdate)
-                .then(() => console.log(`Saved ${searchResult.userFacts.length} user facts to knowledge graph`))
-                .catch((err) => console.error("Failed to save user facts:", err));
-            }
-            const qualifiedUsers = searchResult.qualifiedUsers;
-            if (qualifiedUsers.length === 0) {
-              responseText = `I couldn't find any creators matching your criteria after searching ${searchResult.totalSearched} profiles. Try broadening your search or describing different characteristics.`;
-            } else {
-              const formattedResults = [...qualifiedUsers]
-                .sort((a, b) => b.score.score - a.score.score)
-                .map((item, i: number) => {
-                  const bio = item.user.bio ? `\n   Bio: ${item.user.bio}` : "";
-                  const score = `\n   Match: ${item.score.score}% (${item.score.confidence} confidence)`;
-                  const justification = `\n   Why: ${item.score.justification}`;
-                  return `${i + 1}. ${item.user.name}${bio}${score}${justification}\n   ${item.user.profileUrl}`;
-                })
-                .join("\n\n");
-              responseText = `Found ${qualifiedUsers.length} creators matching your worldview (searched ${searchResult.totalSearched} profiles):\n\n${formattedResults}`;
-            }
-          }
-
-          // Switch to generating status before streaming final results
-          emitStatus("generating");
-          streamText(responseText);
-          // Save final result as assistant message
-          if (chatId && userId) {
-            await saveAssistantMessage(chatId, userId, responseText);
-          }
-        } catch (error) {
-          console.error("DeepSearch error:", error);
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          const errorText = `Something went wrong: ${errorMessage}`;
-          streamText(errorText);
-          if (chatId && userId) {
-            await saveAssistantMessage(chatId, userId, errorText);
-          }
-        }
-
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  } else {
-    // Regular mode - use search MCPs + knowledge graph
-    mcpServers = [
-      'joerup/exa-mcp',
-      'windsor/brave-search-mcp',
-    ];
-
-    // Create knowledge graph tools if user is authenticated
-    const knowledgeTools = userId && convexClient
-      ? createKnowledgeGraphTools(userId, createKnowledgeGraphDeps(userId))
-      : null;
-
-    // Query knowledge graph for user context
-    let knowledgeContext = "";
-    if (knowledgeTools) {
-      try {
-        const graphResult = await knowledgeTools.query_knowledge_graph(input);
-        if (graphResult.vertices.length > 0) {
-          const vertexInfo = graphResult.vertices
-            .map((v) => `${v.content} (confidence: ${v.weight})`)
-            .join("\n");
-          const edgeInfo = graphResult.edges
-            .map((e) => `${e.from} --[${e.relationship}]--> ${e.to}`)
-            .join("\n");
-          knowledgeContext = `\n\n<user_knowledge>\nKnown about user:\n${vertexInfo}\n\nRelationships:\n${edgeInfo}\n</user_knowledge>`;
-        }
-      } catch (error) {
-        console.error("Error querying knowledge graph:", error);
-      }
-    }
-
-    // Prepend knowledge context to first message if available
-    if (isNewConversation && allMessages.length > 0 && knowledgeContext) {
-      allMessages[0] = {
-        ...allMessages[0],
-        content: `${knowledgeContext}\n\nUser question: ${allMessages[0].content}`,
-      };
+    } catch (error) {
+      console.error("Error querying knowledge graph:", error);
     }
   }
 
-  // Handle direct responses (e.g., clarifying questions, X search results)
+  // Prepend knowledge context to first message if available
+  if (isNewConversation && allMessages.length > 0 && knowledgeContext) {
+    allMessages[0] = {
+      ...allMessages[0],
+      content: `${knowledgeContext}\n\nUser question: ${allMessages[0].content}`,
+    };
+  }
+
+  // Handle direct responses (e.g., clarifying questions)
   if (input.startsWith("__DIRECT_RESPONSE__")) {
     const directResponse = input.replace("__DIRECT_RESPONSE__", "");
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
-        // Simulate a chat completion response format
-        const chunk = {
-          choices: [{ delta: { content: directResponse } }],
-        };
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`),
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "text", content: directResponse })}\n\n`,
+          ),
         );
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
 
-        // Save direct response as assistant message
         if (chatId && userId) {
           await saveAssistantMessage(chatId, userId, directResponse);
         }
@@ -651,90 +211,121 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
-  // Create knowledge graph tools for response processing
-  const knowledgeTools = userId && convexClient
-    ? createKnowledgeGraphTools(userId, createKnowledgeGraphDeps(userId))
-    : null;
+  // Build the prompt from conversation history
+  const prompt = Prompt.make([
+    { role: "system", content: ARTICLE_CHAT_PROMPT },
+    ...allMessages.map((m) => ({
+      role: m.role,
+      content: [{ type: "text" as const, text: m.content }],
+    })),
+  ]);
 
-  /**
-   * Searches saved articles by semantic similarity and fetches full content. Returns top-5 relevant articles.
-   * @param query - What to search for (topic, keywords, or description)
-   * @param personalize - If true, enriches search with user's interests. Use true for discovery, false for explicit topic searches.
-   */
-  async function getSavedArticles(query: string, personalize: boolean): Promise<string> {
-    if (!userId) return "No user authenticated";
-    if (!query || query.trim() === "") return "Query is required for searching saved articles";
-    return searchSavedArticles(userId, query, personalize);
-  }
+  const mcpServers = [
+    McpRegistry.marketplace("joerup/exa-mcp"),
+    McpRegistry.marketplace("windsor/brave-search-mcp"),
+  ];
 
-  /**
-   * Searches RSS feed articles by semantic similarity and fetches full content. Returns top-5 relevant articles.
-   * @param query - What to search for (topic, keywords, or description)
-   * @param personalize - If true, enriches search with user's interests. Use true for discovery, false for explicit topic searches.
-   */
-  async function getFeedArticles(query: string, personalize: boolean): Promise<string> {
-    if (!userId) return "No user authenticated";
-    if (!query || query.trim() === "") return "Query is required for searching feed articles";
-    return searchCachedArticles(userId, query, personalize);
-  }
+  // Build toolkit layer with dependencies (requires authenticated user)
+  const chatToolkitLive =
+    userId && convexClient
+      ? createChatToolkitLayer({
+          userId,
+          convexClient,
+          createEmbedding,
+          knowledgeGraphDeps: createKnowledgeGraphDeps(userId),
+        })
+      : null;
 
   const encoder = new TextEncoder();
   const readableStream = new ReadableStream({
     async start(controller) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", status: "generating" })}\n\n`));
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "status", status: "thinking" })}\n\n`,
+        ),
+      );
+
+      let fullText = "";
+      let hasStartedGenerating = false;
+
+      const toolStatusMap: Record<string, string> = {
+        FetchArticleContent: "searching",
+        GetSavedArticles: "searching",
+        GetFeedArticles: "searching",
+        UpdateKnowledge: "thinking",
+      };
+
+      const handlePart = (part: {
+        type: string;
+        delta?: string;
+        name?: string;
+      }) =>
+        Effect.sync(() => {
+          if (part.type === "tool-call" && part.name) {
+            const status = toolStatusMap[part.name] ?? "searching";
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "status", status })}\n\n`,
+              ),
+            );
+          } else if (part.type === "text-delta" && part.delta) {
+            if (!hasStartedGenerating) {
+              hasStartedGenerating = true;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: "status", status: "generating" })}\n\n`,
+                ),
+              );
+            }
+            fullText += part.delta;
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "text", content: part.delta })}\n\n`,
+              ),
+            );
+          }
+        });
 
       try {
-        // Debug logging for agent call
-        console.log("=== Agent Call ===");
-        console.log("Messages count:", allMessages.length);
-        console.log("First message:", allMessages[0]?.content?.substring(0, 200) + "...");
-        console.log("Last message:", allMessages[allMessages.length - 1]?.content?.substring(0, 100));
+        // Build the stream program — conditionally include local toolkit
+        const program = chatToolkitLive
+          ? LanguageModel.streamText({
+              prompt,
+              toolkit: ChatToolkit,
+              mcpServers,
+            }).pipe(
+              Stream.tap(handlePart),
+              Stream.runDrain,
+              Effect.provide(chatToolkitLive),
+            )
+          : LanguageModel.streamText({ prompt, mcpServers }).pipe(
+              Stream.tap(handlePart),
+              Stream.runDrain,
+            );
 
-        // Use structured output with ArticleChatResponse schema
-        const result = await Effect.runPromise(
-          agentRunner.run({
-            messages: allMessages,
-            model: "openai/gpt-5.1",
-            tools: [fetchArticleContent, getSavedArticles, getFeedArticles],
-            ...(mcpServers.length > 0 && { mcpServers }),
-            maxSteps: 10,
-            systemPrompt: ARTICLE_CHAT_PROMPT,
-            responseFormat: wrapJsonSchema(
-              JSONSchema.make(ArticleChatResponse),
-              "article_chat_response",
+        await Effect.runPromise(
+          program.pipe(
+            Effect.provide(
+              AgentRunner.ReAct.pipe(
+                Layer.provide(Layer.succeed(AgentRunner.Config, { maxTurns: 10 })),
+                Layer.provide(Gpt5.pipe(Layer.provide(DedalusClientLive))),
+              ),
             ),
-          }),
+          ),
         );
 
-        // Parse the structured output
-        const parsed = Schema.decodeUnknownSync(ArticleChatResponse)(
-          JSON.parse(result.finalOutput),
-        );
-
-        // Send the response text to the client
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: "text", content: parsed.response })}\n\n`),
-        );
-
-        // Save to database
-        if (chatId && userId && parsed.response) {
-          await saveAssistantMessage(chatId, userId, parsed.response);
-        }
-
-        // Process knowledge updates in the background (non-blocking)
-        if (knowledgeTools && parsed.knowledge_update) {
-          const { entities, relationships } = parsed.knowledge_update;
-          if (entities.length > 0 || relationships.length > 0) {
-            knowledgeTools
-              .update_knowledge_graph({ entities, relationships })
-              .catch((err) => console.error("Knowledge update failed:", err));
-          }
+        // Save complete response to database
+        if (chatId && userId && fullText) {
+          await saveAssistantMessage(chatId, userId, fullText);
         }
       } catch (error) {
         console.error("Chat error:", error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: "text", content: `Error: ${errorMessage}` })}\n\n`),
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "text", content: `Error: ${errorMessage}` })}\n\n`,
+          ),
         );
       }
 
@@ -750,4 +341,8 @@ export async function action({ request }: ActionFunctionArgs) {
       Connection: "keep-alive",
     },
   });
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  return handleChatStream(request);
 }

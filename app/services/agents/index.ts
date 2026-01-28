@@ -1,64 +1,34 @@
-export type { AgentRunOptions } from "./agents.types";
-export type { Tool } from "dedalus-labs/lib/runner/types/tools";
-export type { RunResult } from "dedalus-labs/lib/runner/runner";
-
+// Types
 export {
-  ExtractedFact,
-  XHandle,
-  FootprintResult,
-  XUser,
-  JudgeResult,
-  ParserResult,
-  DeepSearchConfig,
-  DeepSearchResult,
   KnowledgeGraphEntity,
   KnowledgeGraphRelationship,
   KnowledgeGraphUpdate,
-  ArticleChatResponse,
   KnowledgeGraphVertex,
   KnowledgeGraphEdge,
   KnowledgeGraphSubgraph,
 } from "./agents.types";
 
+// Shared layers and models
 export {
-  createQueryTools,
-  type QueryToolDependencies,
-  type SavedArticle,
+  DedalusClientLive,
+  Gpt5,
+  Gpt4oMini,
+  TextEmbedding,
+} from "./agents.effect";
+
+// Tools
+export {
+  ChatToolkit,
+  createChatToolkitLayer,
+  type ChatToolDependencies,
   fetchArticleContent,
   type ArticleContent,
   createKnowledgeGraphTools,
+  verbalizeGraph,
+  verbalizeGraphForPrompt,
   type KnowledgeGraphToolDependencies,
+  type SearchToolDependencies,
 } from "./tools";
 
+// Prompts
 export { ARTICLE_CHAT_PROMPT } from "./prompts";
-
-export {
-  AgentRunnerError,
-  QueryAgentError,
-  ParserAgentError,
-  OrchestratorAgentError,
-  JudgeAgentError,
-  DeepSearchError,
-} from "./agents.errors";
-
-export {
-  DedalusRunnerService,
-  AgentRunner,
-  QueryAgent,
-  ParserAgent,
-  OrchestratorAgent,
-  JudgeAgent,
-  DeepSearchOrchestrator,
-  type OnSearchStartCallback,
-} from "./agents.service";
-
-export {
-  AgentRunnerLive,
-  QueryAgentLive,
-  ParserAgentLive,
-  OrchestratorAgentLive,
-  JudgeAgentLive,
-  DeepSearchOrchestratorLive,
-  AllAgentsLive,
-  wrapJsonSchema,
-} from "./agents.effect";
