@@ -327,3 +327,44 @@ export const backfill_embeddings_batch = internalAction({
   },
 });
 
+// ============================================================================
+// REMOVE DEEP SEARCH MIGRATION
+// ============================================================================
+
+/**
+ * Migrate deep_search conversations to regular and remove deep_search_used from settings.
+ * Run: bunx convex run migrations:remove_deep_search
+ */
+export const remove_deep_search = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Convert all deep_search conversations to regular
+    const allChats = await ctx.db.query("group_chat").collect();
+    let chatsConverted = 0;
+    for (const chat of allChats) {
+      if ((chat as any).mode === "deep_search") {
+        await ctx.db.patch(chat._id, { mode: "regular" } as any);
+        chatsConverted++;
+      }
+    }
+
+    // Remove deep_search_used from all settings rows
+    const allSettings = await ctx.db.query("settings").collect();
+    let settingsUpdated = 0;
+    for (const settings of allSettings) {
+      if ((settings as any).deep_search_used !== undefined) {
+        // Convex doesn't support deleting fields via patch, so we replace the document
+        await ctx.db.replace(settings._id, {
+          user_id: settings.user_id,
+          messages_used: settings.messages_used,
+          subscription_period_start: settings.subscription_period_start,
+        });
+        settingsUpdated++;
+      }
+    }
+
+    console.log(`Migration complete: converted ${chatsConverted} deep_search conversations, updated ${settingsUpdated} settings rows.`);
+    return { chatsConverted, settingsUpdated };
+  },
+});
+

@@ -3,8 +3,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const TOKEN_LIMITS = {
-  MESSAGES: 500,
-  DEEP_SEARCH: 30,
+  MESSAGES: 1000,
 };
 
 export const getTokenBalance = query({
@@ -28,9 +27,6 @@ export const getTokenBalance = query({
       messagesUsed: settings.messages_used,
       messagesRemaining: TOKEN_LIMITS.MESSAGES - settings.messages_used,
       messagesLimit: TOKEN_LIMITS.MESSAGES,
-      deepSearchUsed: settings.deep_search_used,
-      deepSearchRemaining: TOKEN_LIMITS.DEEP_SEARCH - settings.deep_search_used,
-      deepSearchLimit: TOKEN_LIMITS.DEEP_SEARCH,
       subscriptionPeriodStart: settings.subscription_period_start,
     };
   },
@@ -68,38 +64,6 @@ export const deductMessageToken = mutation({
   },
 });
 
-export const deductDeepSearchToken = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new Error("Not authenticated");
-    }
-
-    const settings = await ctx.db
-      .query("settings")
-      .withIndex("by_user_id", (q) => q.eq("user_id", userId))
-      .unique();
-
-    if (!settings) {
-      throw new Error("No active subscription");
-    }
-
-    if (settings.deep_search_used >= TOKEN_LIMITS.DEEP_SEARCH) {
-      throw new Error("Deep search token limit reached");
-    }
-
-    await ctx.db.patch(settings._id, {
-      deep_search_used: settings.deep_search_used + 1,
-    });
-
-    return {
-      deepSearchUsed: settings.deep_search_used + 1,
-      deepSearchRemaining: TOKEN_LIMITS.DEEP_SEARCH - settings.deep_search_used - 1,
-    };
-  },
-});
-
 export const initializeUserTokens = internalMutation({
   args: {
     userId: v.string(),
@@ -114,14 +78,12 @@ export const initializeUserTokens = internalMutation({
     if (existingSettings) {
       await ctx.db.patch(existingSettings._id, {
         messages_used: 0,
-        deep_search_used: 0,
         subscription_period_start: args.subscriptionPeriodStart,
       });
     } else {
       await ctx.db.insert("settings", {
         user_id: args.userId as any,
         messages_used: 0,
-        deep_search_used: 0,
         subscription_period_start: args.subscriptionPeriodStart,
       });
     }
@@ -146,7 +108,6 @@ export const resetUserTokens = internalMutation({
     if (args.newPeriodStart > settings.subscription_period_start) {
       await ctx.db.patch(settings._id, {
         messages_used: 0,
-        deep_search_used: 0,
         subscription_period_start: args.newPeriodStart,
       });
     }
