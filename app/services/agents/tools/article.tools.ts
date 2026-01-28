@@ -1,5 +1,20 @@
+import { Tool } from "@luketandjung/ariadne";
+import { Schema } from "effect";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+
+export const FetchArticleTool = Tool.make("FetchArticleContent", {
+  description:
+    "Fetch the full content of an article given its URL. Use this when a user asks about a specific article or provides a URL.",
+  parameters: {
+    url: Schema.String.annotations({
+      description: "The URL of the article to fetch",
+    }),
+  },
+  success: Schema.String,
+  failure: Schema.String,
+  failureMode: "return" as const,
+});
 
 export interface ArticleContent {
   [key: string]: string | null;
