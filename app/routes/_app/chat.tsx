@@ -232,16 +232,16 @@ export default function Chat() {
   return (
     <div className="flex flex-col md:flex-row gap-6 md:grow md:min-h-0 w-full">
       {/* Side Panel */}
-      <div className="flex flex-col gap-4 md:w-64 shrink-0">
+      <div className="flex flex-col gap-4 md:w-64 shrink-0 md:min-h-0">
         <SectionCard
           icon={<ClockIcon className="size-7" />}
           title="History"
           description="Recent conversations"
-          className="grow"
+          className="grow min-h-0 overflow-hidden"
         >
-          <div className="flex flex-col gap-2 grow">
-            <ScrollArea.Root className="grow min-h-0">
-              <ScrollArea.Viewport className="grow min-h-0">
+          <div className="flex flex-col gap-2 grow min-h-0">
+            <ScrollArea.Root className="min-h-0 w-full max-h-64 md:max-h-none md:grow">
+              <ScrollArea.Viewport className="h-full w-full">
                 <div className="flex flex-col gap-1">
                   {conversations
                     ?.filter((c) => c.mode !== "user")
