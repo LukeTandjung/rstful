@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChatBubbleLeftRightIcon, XMarkIcon } from "@heroicons/react/16/solid";
-import { SectionCard, ChatInterface, type StreamStatus } from "components";
+import { SectionCard } from "./SectionCard";
+import { ChatInterface, type StreamStatus } from "./ChatInterface";
 import { Button } from "@base-ui-components/react/button";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
@@ -129,7 +130,8 @@ export function ArticleChatCard({ article, userId, onClose }: ArticleChatCardPro
           chatId={chatId}
           userId={userId}
           placeholder="Ask about this article..."
-          externalLoading={streamStatus !== "idle"}
+          externalStreamStatus={streamStatus}
+          externalStreamingContent={streamingContent}
         />
       ) : (
         <div className="flex items-center justify-center py-8">

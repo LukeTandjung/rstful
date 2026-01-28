@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ChatBubbleLeftRightIcon,
-  MagnifyingGlassIcon,
   UserIcon,
   XMarkIcon,
 } from "@heroicons/react/16/solid";
@@ -22,7 +21,7 @@ interface ConversationListItemProps {
 
 const modeIcons: Record<ChatMode, typeof ChatBubbleLeftRightIcon> = {
   regular: ChatBubbleLeftRightIcon,
-  deep_search: MagnifyingGlassIcon,
+  deep_search: ChatBubbleLeftRightIcon,
   user: UserIcon,
 };
 
