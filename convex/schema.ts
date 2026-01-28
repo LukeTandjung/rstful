@@ -26,7 +26,6 @@ export default defineSchema({
     messages_used: v.number(),
     // Billing cycle tracking
     subscription_period_start: v.number(),
-    deep_search_used: v.optional(v.number()), // temporary: remove after running migrations:remove_deep_search
   }).index("by_user_id", ["user_id"]),
 
   rss_feed: defineTable({
@@ -88,11 +87,7 @@ export default defineSchema({
   group_chat: defineTable({
     name: v.string(),
     created_at: v.int64(),
-    mode: v.union(
-      v.literal("regular"),
-      v.literal("user"),
-      v.literal("deep_search"), // temporary: remove after running migrations:remove_deep_search
-    ),
+    mode: v.union(v.literal("regular"), v.literal("user")),
   }),
 
   group_chat_members: defineTable({
