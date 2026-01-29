@@ -11,8 +11,8 @@
         "@convex-dev/polar": "^0.7.3",
         "@effect/platform": "^0.94.2",
         "@heroicons/react": "^2.2.0",
-        "@luketandjung/ariadne": "2.1.2",
-        "@luketandjung/dedalus-labs": "2.1.2",
+        "@luketandjung/ariadne": "2.1.4",
+        "@luketandjung/dedalus-labs": "2.1.4",
         "@mozilla/readability": "^0.6.0",
         "@oslojs/crypto": "^1.0.1",
         "@radix-ui/react-icons": "^1.3.2",
@@ -206,9 +206,9 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@luketandjung/ariadne": ["@luketandjung/ariadne@2.1.2", "", { "dependencies": { "find-my-way-ts": "^0.1.6" }, "peerDependencies": { "@effect/experimental": "^0.58.0", "@effect/platform": "^0.94.1", "@effect/rpc": "^0.73.0", "effect": "^3.19.14" } }, "sha512-Eh4Ly7bisnNOXy3mbea8QhTeZXSgJH7EXKsuwrBR3ObgsZau5zpC+5uOFqcjedfvPEI3Ssg4jGlf0btxAc2Ohg=="],
+    "@luketandjung/ariadne": ["@luketandjung/ariadne@2.1.4", "", { "dependencies": { "find-my-way-ts": "^0.1.6" }, "peerDependencies": { "@effect/experimental": "^0.58.0", "@effect/platform": "^0.94.1", "@effect/rpc": "^0.73.0", "effect": "^3.19.14" } }, "sha512-i3G48WWR8EgjTt/GN0rEWVNbICL6XxXRpJHZ0QjgNTwZqlQCLTTuwo+U89iWF3RxmYffVAeZKQPZKKJ/bgCXEg=="],
 
-    "@luketandjung/dedalus-labs": ["@luketandjung/dedalus-labs@2.1.2", "", { "dependencies": { "@luketandjung/ariadne": "2.1.2" }, "peerDependencies": { "@effect/experimental": "^0.58.0", "@effect/platform": "^0.94.1", "effect": "^3.19.14", "typescript": "^5" } }, "sha512-yFwvEfCsgrvLKNdd/i5DdBhK/co9NMFJskkLNbe+VSJM/mnIennOVkHxbwrFNR71iZi0pq14N28qT966VhAauw=="],
+    "@luketandjung/dedalus-labs": ["@luketandjung/dedalus-labs@2.1.4", "", { "dependencies": { "@luketandjung/ariadne": "2.1.4" }, "peerDependencies": { "@effect/experimental": "^0.58.0", "@effect/platform": "^0.94.1", "effect": "^3.19.14", "typescript": "^5" } }, "sha512-J9VJSJhd3qTsMh5kjoZUKFpNFDmzt0T26EYDq8H96ujsdxUkpRWdrGr2Lus7S5ZP279ZuQuYHiQC+AV7vBZkEQ=="],
 
     "@mjackson/node-fetch-server": ["@mjackson/node-fetch-server@0.2.0", "", {}, "sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng=="],
 
